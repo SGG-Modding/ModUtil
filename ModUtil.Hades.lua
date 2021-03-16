@@ -10,6 +10,15 @@ ModUtil.Anchors.PrintOverhead = {}
 
 -- Global Interception
 
+local function getGlobalPath( path )
+	and path:find("[.]")
+	and not path:find("[.][.]+")
+	and not path:find("^[.]")
+	and not path:find("[.]$") then
+		return ModUtil.Path.Get( path )
+	end
+end
+
 --[[
 	Intercept global keys which are objects to return themselves
 	This way we can use other namespaces for UI etc
@@ -18,7 +27,9 @@ ModUtil.IndexArray.Wrap( getmetatable( _ENV ), { "__index" }, function( baseFunc
 	local value = baseFunc( self, key )
 	if value ~= nil then return value end
 	local t = type( key )
-	if t == "function" or t == "table" then
+	if t == "string" then
+		return getGlobalPath( key )
+	elseif t == "function" or t == "table" then
 		return key
 	end
 end, ModUtil.Hades )
