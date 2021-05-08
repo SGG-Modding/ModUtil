@@ -2847,7 +2847,7 @@ function ModUtil.WrapWithinFunction( baseTable, indexArray, envIndexArray, wrapF
 			env,
 			envIndexArray,
 			function( ... )
-				local resolvedFunc = ModUtil.SafeGet( ModUtil.Experimental.SkipEnvironment( baseTable ), envIndexArray )
+				local resolvedFunc = ModUtil.SafeGet( baseTable, envIndexArray )
 				return resolvedFunc( ... )
 			end
 		)
