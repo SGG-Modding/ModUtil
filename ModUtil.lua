@@ -2866,8 +2866,8 @@ end
 	value	- the new value to store at the path
 ]]
 function ModUtil.BaseOverrideWithinFunction( funcPath, basePath, value )
-	local indexArray = ModUtil.PathArray( funcPath )
-	local envIndexArray = ModUtil.PathArray( basePath )
+	local indexArray = ModUtil.PathToIndexArray( funcPath )
+	local envIndexArray = ModUtil.PathToIndexArray( basePath )
 	ModUtil.OverrideWithinFunction( _G, indexArray, envIndexArray, value )
 end
 
@@ -2903,8 +2903,8 @@ end
 	mod	- (optional) the object for your mod, for debug purposes
 ]]
 function ModUtil.WrapBaseWithinFunction( funcPath, baseFuncPath, wrapFunc, mod )
-	local indexArray = ModUtil.PathArray( funcPath )
-	local envIndexArray = ModUtil.PathArray( baseFuncPath )
+	local indexArray = ModUtil.PathToIndexArray( funcPath )
+	local envIndexArray = ModUtil.PathToIndexArray( baseFuncPath )
 	ModUtil.WrapWithinFunction( _G, indexArray, envIndexArray, wrapFunc, mod )
 end
 
