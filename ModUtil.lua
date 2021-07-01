@@ -170,7 +170,7 @@ function table.insert( list, pos, value )
 		repeat
 			list[ i + 1 ] = list[ i ]
 			i = i - 1
-		until i <= pos
+		until i < pos
 	end
 	list[ pos ] = value
 end
