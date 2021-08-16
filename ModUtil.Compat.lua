@@ -80,3 +80,15 @@ ModUtil.Compat.BaseOverride = ModUtil.Path.Override
 ModUtil.Compat.GetOriginalValue = ModUtil.IndexArray.Original
 
 ModUtil.Compat.GetOriginalBaseValue = ModUtil.Path.Original
+
+function ModUtil.Compat.WrapWithinFunction( baseTable, indexArray, envIndexArray, wrapFunc, mod )
+	ModUtil.Context.Env( function( )
+		ModUtil.IndexArray.Wrap( _G, envIndexArray, wrapFunc, mod )
+	end, ModUtil.IndexArray.Get( baseTable, indexArray ) )
+end
+
+function ModUtil.Compat.BaseWrapWithinFunction( funcPath, baseFuncPath, wrapFunc, mod )
+	ModUtil.Context.Env( function( )
+		ModUtil.Path.Wrap( funcPath, wrapFunc, mod )
+	end, ModUtil.IndexArray.Get( baseFuncPath ) )
+end
