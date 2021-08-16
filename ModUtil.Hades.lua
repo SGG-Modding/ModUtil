@@ -28,7 +28,7 @@ ModUtil.IndexArray.Wrap( getmetatable( _ENV ), { "__index" }, function( baseFunc
 	if t == "string" and isPath( key ) then
 		return ModUtil.Path.Get( key )
 	end
-	if t == "function" or t == "table" then
+	if ModUtil.Internal.callableCandidateTypes[ t ] then
 		return key
 	end
 end, ModUtil.Hades )

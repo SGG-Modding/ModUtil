@@ -82,13 +82,13 @@ ModUtil.Compat.GetOriginalValue = ModUtil.IndexArray.Original
 ModUtil.Compat.GetOriginalBaseValue = ModUtil.Path.Original
 
 function ModUtil.Compat.WrapWithinFunction( baseTable, indexArray, envIndexArray, wrapFunc, mod )
-	ModUtil.Context.Env( function( )
+	ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, function( )
 		ModUtil.IndexArray.Wrap( _G, envIndexArray, wrapFunc, mod )
-	end, ModUtil.IndexArray.Get( baseTable, indexArray ) )
+	end )
 end
 
 function ModUtil.Compat.WrapBaseWithinFunction( funcPath, baseFuncPath, wrapFunc, mod )
-	ModUtil.Context.Env( function( )
+	ModUtil.Path.Context.Wrap( baseFuncPath, function( )
 		ModUtil.Path.Wrap( funcPath, wrapFunc, mod )
-	end, ModUtil.IndexArray.Get( baseFuncPath ) )
+	end )
 end

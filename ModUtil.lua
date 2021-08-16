@@ -262,7 +262,7 @@ function ModUtil.RawInterface( obj )
 	} )
 end
 
--- Environment Context ( EXPERIMENTAL ) ( BROKEN )
+-- Environment Manipulation
 
 local _G = _ENV
 local __G
@@ -305,10 +305,76 @@ local function replaceGlobalEnvironment( )
 	ModUtil.Identifiers.Inverse._ENV = __G
 end
 
+local fenvData = setmetatable( { }, { __mode = "k" } )
+
+function _G.getfenv( func )
+	local fenv = fenvData[ func ]
+	if not fenv then
+		fenv = getfenv( func )
+		if fenv == __G then
+			fenv = nil
+		end
+	end
+	return fenv
+end
+
+function _G.newfenv( func )
+	local fenv = _G.getfenv( func )
+	if not fenv then
+		fenv = { }
+		fenvData[ func ] = fenv
+	end
+	return fenv
+end
+
+function _G.setfenv( func, fenv )
+	fenvData[ func ] = fenv
+	
+	setfenv( func, setmetatable( { }, {
+		__index = function( _, key )
+			local val
+			local env = threadEnvironments[ coroutine.running( ) ]
+			if env then
+				val = env[ key ]
+			end
+			if val ~= nil then return val end
+			val = fenv[ key ]
+			if val ~= nil then return val end
+			return _G[ key ]
+		end,
+		__newindex = function( _, key, val )
+			local env = threadEnvironments[ coroutine.running( ) ]
+			if env and env[ key ] ~= nil then
+				env[ key ] = val
+				return
+			end
+			if fenv[ key ] ~= nil then
+				fenv[ key ] = val
+				return
+			end
+			_G[ key ] = val
+		end
+	} ) )
+end
+
 -- Data Misc
 
 local passByValueTypes = ToLookup{ "number", "boolean", "nil" }
+local callableCandidateTypes = ToLookup{ "function", "table", "userdata" }
 local excludedFieldNames = ToLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
+
+function ModUtil.Callable( obj )
+	local meta, pobj
+	while obj do
+		local t = type( obj )
+		if t == "function" then break end
+		if not callableCandidateTypes[ t ] then return nil, nil, pobj end
+		meta = getmetatable( obj )
+		if not meta then break end
+		pobj, obj = obj, rawget( meta, "__call" )
+	end
+	return obj, meta, pobj
+end
 
 setmetatable( ModUtil.ToString, {
 	__call = function ( _, o )
@@ -684,7 +750,12 @@ function ModUtil.IndexArray.Get( baseTable, indexArray )
 		if nodeType then
 			node = ModUtil.Nodes.Data[ nodeType ].Get( node )
 		else
-			node = node[ key ]
+			local call = ModUtil.Callable( key )
+			if call then
+				node = call( node )
+			else
+				node = node[ key ]
+			end
 		end
 	end
 	return node
@@ -712,18 +783,27 @@ function ModUtil.IndexArray.Set( baseTable, indexArray, value )
 	local node = baseTable
 	for i = 1, n - 1 do
 		local key = indexArray[ i ]
-		if not ModUtil.Table.New( node, key ) then return false end
+		if not ModUtil.Nodes.New( parent, key ) then return false end
 		local nodeType = ModUtil.Nodes.Inverse[ key ]
 		if nodeType then
 			node = ModUtil.Nodes.Data[ nodeType ].Get( node )
 		else
-			node = node[ key ]
+			local call = ModUtil.Callable( key )
+			if call then
+				node = call( node )
+			else
+				node = node[ key ]
+			end
 		end
 	end
 	local key = indexArray[ n ]
 	local nodeType = ModUtil.Nodes.Inverse[ key ]
 	if nodeType then
 		return ModUtil.Nodes.Data[ nodeType ].Set( node, value )
+	end
+	local call = ModUtil.Callable( key )
+	if call then
+		return call( node, value )
 	end
 	node[ key ] = value
 	return true
@@ -1743,7 +1823,7 @@ setmetatable( ModUtil.Entangled.Map.Unique, {
 	end
 } )
 
--- Context Managers ( EXPERIMENTAL ) ( BROKEN )
+-- Context Managers
 
 ModUtil.Context = { }
 
@@ -1751,7 +1831,7 @@ local threadContexts = { }
 setmetatable( threadContexts, { __mode = "kv" } )
 
 ModUtil.Metatables.Context = {
-	__call = function( self, callContext, ... )
+	__call = function( self, arg, callContext, ... )
 
 		local thread = coroutine.running( )
 
@@ -1769,6 +1849,7 @@ ModUtil.Metatables.Context = {
 
 		contextInfo.context = self
 		contextInfo.args = table.pack( ... )
+		contextInfo.arg = arg
 		contextInfo.data = { }
 		contextInfo.params = table.pack( getObjectData( self, "callContextProcessor" )( contextInfo ) )
 		
@@ -1795,7 +1876,7 @@ setmetatable( ModUtil.Context, {
 } )
 
 ModUtil.Context.Data = ModUtil.Context( function( info )
-	local tbl = info.args[ 1 ]
+	local tbl = info.arg
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
@@ -1803,50 +1884,17 @@ ModUtil.Context.Data = ModUtil.Context( function( info )
 end )
 
 ModUtil.Context.Meta = ModUtil.Context( function( info )
-	local tbl = ModUtil.Nodes.Data.Metatable.New( info.args[ 1 ] )
+	local tbl = ModUtil.Nodes.Data.Metatable.New( info.arg )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
 	} )
 end )
 
-local fenvData = setmetatable( { }, { __mode = "k" } )
-
 ModUtil.Context.Env = ModUtil.Context( function( info )
-	local func = info.args[ 1 ]
-	local fenv = fenvData[ func ]
-	if not fenv then
-		fenv = getfenv( func )
-		if not fenv or fenv == __G then
-			fenv = { }
-		end
-		fenvData[ func ] = fenv
-	end
-	setfenv( func, setmetatable( { }, {
-		__index = function( _, key )
-			local val
-			local env = threadEnvironments[ coroutine.running( ) ]
-			if env then
-				val = env[ key ]
-			end
-			if val ~= nil then return val end
-			val = fenv[ key ]
-			if val ~= nil then return val end
-			return _G[ key ]
-		end,
-		__newindex = function( _, key, val )
-			local env = threadEnvironments[ coroutine.running( ) ]
-			if env and env[ key ] ~= nil then
-				env[ key ] = val
-				return
-			end
-			if fenv[ key ] ~= nil then
-				fenv[ key ] = val
-				return
-			end
-			_G[ key ] = val
-		end
-	} ) )
+	local func = info.arg
+	local fenv = _G.newfenv( func )
+	ModUtil.SetFunctionEnvironment( func, fenv )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return fenv[ key ] or info.penv[ key ] end,
 		__newindex = fenv
@@ -1859,9 +1907,13 @@ ModUtil.Context.Call = ModUtil.Context(
 		info.env = setmetatable( { }, { __index = info.penv } )
 	end,
 	function ( info )
-		return info.args[ 1 ]( table.unpack( info.args, 2, info.args.n ) )
+		return info.arg( table.unpack( info.args ) )
 	end
 )
+
+ModUtil.Context.Wrap = function( func, context )
+	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( context, base, ... ) end )
+end
 
 -- Special traversal nodes
 
@@ -1872,6 +1924,8 @@ function ModUtil.Nodes.New( parent, key )
 	if nodeType then
 		return ModUtil.Nodes.Data[ nodeType ].New( parent )
 	end
+	local call = ModUtil.Callable( key )
+	if call then return call( parent )
 	local tbl = parent[ key ]
 	if type( tbl ) ~= "table" then
 		tbl = { }
@@ -1900,41 +1954,16 @@ ModUtil.Nodes.Data.Metatable = {
 
 ModUtil.Nodes.Data.Call = {
 	New = function( obj )
-		local call
-		while type( obj ) == "table" do
-			local meta = getmetatable( obj )
-			if meta then
-				call = meta.__call
-				if call then
-					obj = call
-				end
-			end
-		end
+		local call = ModUtil.Callable( obj )
 		return call or error( "node new rejected, new call nodes are not meaningfully mutable.", 2 )
 	end,
 	Get = function( obj )
-		while type( obj ) == "table" do
-			local meta = getmetatable( obj )
-			if meta then
-				if meta.__call then
-					obj = meta.__call
-				end
-			end
-		end
-		return obj
+		local call = ModUtil.Callable( obj )
+		return call
 	end,
 	Set = function( obj, value )
-		local meta
-		while type( obj ) == "table" do
-			meta = getmetatable( obj )
-			if meta then
-				if meta.__call then
-					obj = meta.__call
-				end
-			end
-		end
-		if not meta then return false end
-		meta.__call = value
+		local _, meta, parent = ModUtil.Callable( obj )
+		rawset( getmetatable( setmetatable( parent, meta or { } ) ), "__call", value )
 		return true
 	end
 }
@@ -2056,6 +2085,10 @@ function ModUtil.IndexArray.Wrap( baseTable, indexArray, wrapFunc, mod )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrapFunc, mod )
 end
 
+function ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, context, mod )
+	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
+end
+
 function ModUtil.IndexArray.Unwrap( baseTable, indexArray )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Unwrap )
 end
@@ -2088,6 +2121,10 @@ end
 
 function ModUtil.Path.Wrap( path, wrapFunc, mod )
 	ModUtil.Path.Map( path, ModUtil.Wrap, wrapFunc, mod )
+end
+
+function ModUtil.IndexArray.Context.Wrap( path, context, mod )
+	ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
 end
 
 function ModUtil.Path.Unwrap( path )
@@ -2126,7 +2163,8 @@ do
 		objectData, newObjectData, getObjectData,
 		wrapCallbacks, overrides,
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
-		pusherror
+		pusherror, getname,
+		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
 	setmetatable( ModUtil.Internal, { __index = ups, __newindex = ups } )
 end
