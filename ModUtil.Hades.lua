@@ -10,15 +10,11 @@ ModUtil.Anchors.PrintOverhead = {}
 
 -- Global Interception
 
-local function getGlobalPath( path )
-	if path:find("[.]")
+local function isPath( path )
+	return path:find("[.]") 
 		and not path:find("[.][.]+")
 		and not path:find("^[.]")
-		and not path:find("[.]$") then
-		
-		return ModUtil.Path.Get( path )
-	end
-	return path
+		and not path:find("[.]$")
 end
 
 --[[
@@ -29,9 +25,10 @@ ModUtil.IndexArray.Wrap( getmetatable( _ENV ), { "__index" }, function( baseFunc
 	local value = baseFunc( self, key )
 	if value ~= nil then return value end
 	local t = type( key )
-	if t == "string" then
-		return getGlobalPath( key )
-	elseif t == "function" or t == "table" then
+	if t == "string" and isPath( key ) then
+		return ModUtil.Path.Get( key )
+	end
+	if t == "function" or t == "table" then
 		return key
 	end
 end, ModUtil.Hades )
