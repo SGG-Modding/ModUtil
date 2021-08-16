@@ -87,7 +87,7 @@ function ModUtil.Compat.WrapWithinFunction( baseTable, indexArray, envIndexArray
 	end, ModUtil.IndexArray.Get( baseTable, indexArray ) )
 end
 
-function ModUtil.Compat.BaseWrapWithinFunction( funcPath, baseFuncPath, wrapFunc, mod )
+function ModUtil.Compat.WrapBaseWithinFunction( funcPath, baseFuncPath, wrapFunc, mod )
 	ModUtil.Context.Env( function( )
 		ModUtil.Path.Wrap( funcPath, wrapFunc, mod )
 	end, ModUtil.IndexArray.Get( baseFuncPath ) )
