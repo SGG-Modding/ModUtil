@@ -1894,7 +1894,7 @@ end )
 ModUtil.Context.Env = ModUtil.Context( function( info )
 	local func = info.arg
 	local fenv = _G.newfenv( func )
-	ModUtil.SetFunctionEnvironment( func, fenv )
+	_G.setfenv( func, fenv )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return fenv[ key ] or info.penv[ key ] end,
 		__newindex = fenv
