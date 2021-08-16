@@ -2125,7 +2125,8 @@ do
 	return _G,
 		objectData, newObjectData, getObjectData,
 		wrapCallbacks, overrides,
-		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment
+		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
+		pusherror
 	end )
 	setmetatable( ModUtil.Internal, { __index = ups, __newindex = ups } )
 end

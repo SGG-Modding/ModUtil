@@ -11,12 +11,14 @@ ModUtil.Anchors.PrintOverhead = {}
 -- Global Interception
 
 local function getGlobalPath( path )
-	and path:find("[.]")
-	and not path:find("[.][.]+")
-	and not path:find("^[.]")
-	and not path:find("[.]$") then
+	if path:find("[.]")
+		and not path:find("[.][.]+")
+		and not path:find("^[.]")
+		and not path:find("[.]$") then
+		
 		return ModUtil.Path.Get( path )
 	end
+	return path
 end
 
 --[[
