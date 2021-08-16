@@ -783,7 +783,7 @@ function ModUtil.IndexArray.Set( baseTable, indexArray, value )
 	local node = baseTable
 	for i = 1, n - 1 do
 		local key = indexArray[ i ]
-		if not ModUtil.Nodes.New( parent, key ) then return false end
+		if not ModUtil.Nodes.New( node, key ) then return false end
 		local nodeType = ModUtil.Nodes.Inverse[ key ]
 		if nodeType then
 			node = ModUtil.Nodes.Data[ nodeType ].Get( node )
@@ -1911,8 +1911,8 @@ ModUtil.Context.Call = ModUtil.Context(
 	end
 )
 
-ModUtil.Context.Wrap = function( func, context )
-	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( context, base, ... ) end )
+function ModUtil.Context.Wrap( func, context, mod )
+	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( context, base, ... ) end, mod )
 end
 
 -- Special traversal nodes
@@ -1925,7 +1925,7 @@ function ModUtil.Nodes.New( parent, key )
 		return ModUtil.Nodes.Data[ nodeType ].New( parent )
 	end
 	local call = ModUtil.Callable( key )
-	if call then return call( parent )
+	if call then return call( parent ) end
 	local tbl = parent[ key ]
 	if type( tbl ) ~= "table" then
 		tbl = { }
@@ -2081,6 +2081,8 @@ end
 
 ---
 
+ModUtil.IndexArray.Context = { }
+
 function ModUtil.IndexArray.Wrap( baseTable, indexArray, wrapFunc, mod )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrapFunc, mod )
 end
@@ -2119,11 +2121,13 @@ end
 
 ---
 
+ModUtil.Path.Context = { }
+
 function ModUtil.Path.Wrap( path, wrapFunc, mod )
 	ModUtil.Path.Map( path, ModUtil.Wrap, wrapFunc, mod )
 end
 
-function ModUtil.IndexArray.Context.Wrap( path, context, mod )
+function ModUtil.Path.Context.Wrap( path, context, mod )
 	ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
 end
 
