@@ -20,11 +20,7 @@ ModUtil = {
 	Locals = { },
 	Entangled = { },
 	Internal = { },
-	Metatables = { },
-	Anchors = {
-		Menu = { },
-		CloseFuncs = { }
-	}
+	Metatables = { }
 
 }
 
@@ -1768,15 +1764,15 @@ ModUtil.Metatables.Context = {
 
 		threadContexts[ thread ] = contextInfo
 
+		local penv = threadEnvironments[ thread ]
+		contextInfo.penv = threadEnvironments[ thread ] or _G
+
 		contextInfo.context = self
 		contextInfo.args = table.pack( ... )
 		contextInfo.data = { }
 		contextInfo.params = table.pack( getObjectData( self, "callContextProcessor" )( contextInfo ) )
-
-		local penv = threadEnvironments[ thread ]
-		local env = setmetatable( { }, { __index = ( penv or _G ), __newindex = ( penv or _G ) } )
-		threadEnvironments[ thread ] = env
-
+		
+		threadEnvironments[ thread ] = contextInfo.env
 		contextInfo.response = table.pack( contextInfo.wrap( table.unpack( contextInfo.params ) ) )
 
 		if getObjectData( self, "postCall" ) then
@@ -1801,7 +1797,7 @@ setmetatable( ModUtil.Context, {
 ModUtil.Context.Data = ModUtil.Context( function( info )
 	local tbl = info.args[ 1 ]
 	info.env = setmetatable( { }, {
-		__index = function( _, key ) return tbl[ key ] or __G[ key ] end,
+		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
 	} )
 end )
@@ -1809,7 +1805,7 @@ end )
 ModUtil.Context.Meta = ModUtil.Context( function( info )
 	local tbl = ModUtil.Nodes.Data.Metatable.New( info.args[ 1 ] )
 	info.env = setmetatable( { }, {
-		__index = function( _, key ) return tbl[ key ] or __G[ key ] end,
+		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
 	} )
 end )
@@ -1820,7 +1816,10 @@ ModUtil.Context.Env = ModUtil.Context( function( info )
 	local func = info.args[ 1 ]
 	local fenv = fenvData[ func ]
 	if not fenv then
-		fenv = getfenv( func ) or { }
+		fenv = getfenv( func )
+		if not fenv or fenv == __G then
+			fenv = { }
+		end
 		fenvData[ func ] = fenv
 	end
 	setfenv( func, setmetatable( { }, {
@@ -1839,55 +1838,28 @@ ModUtil.Context.Env = ModUtil.Context( function( info )
 			local env = threadEnvironments[ coroutine.running( ) ]
 			if env and env[ key ] ~= nil then
 				env[ key ] = val
-			elseif fenv[ key ] ~= nil then
+				return
+			end
+			if fenv[ key ] ~= nil then
 				fenv[ key ] = val
+				return
 			end
 			_G[ key ] = val
 		end
 	} ) )
 	info.env = setmetatable( { }, {
-		__index = function( _, key ) return fenv[ key ] or __G[ key ] end,
+		__index = function( _, key ) return fenv[ key ] or info.penv[ key ] end,
 		__newindex = fenv
 	} )
-end )
+	end
+)
 
 ModUtil.Context.Call = ModUtil.Context(
 	function( info )
-		local meta
-		local penv = threadEnvironments[ info.thread ]
-		local func = info.args[ 1 ]
-
-		meta = {
-			__index = function( _, key )
-				local data = fenvData[ func ]
-				if data then
-					local val = data[ key ]
-					if val ~= nil then return val end
-				end
-				return ( penv or _G )[ key ]
-			end,
-			__newindex = function( _, key, val )
-				local data = fenvData[ func ]
-				if data and data[ key ] ~= nil then
-					data[ key ] = val
-				else
-					( penv or _G )[ key ] = val
-				end
-			end
-		}
-
-		local env = setmetatable( { }, meta )
-		info.env = setmetatable( { }, { __index = env, __newindex = ModUtil.RawInterface( env ) } )
-
-		info.data.penv = penv
-		info.data.env = env
-		info.data.func = func
+		info.env = setmetatable( { }, { __index = info.penv } )
 	end,
 	function ( info )
-		threadEnvironments[ info.thread ] = info.env
-		local ret = table.pack( info.data.func( table.unpack( info.args, 2, info.args.n ) ) )
-		threadEnvironments[ info.thread ] = info.penv
-		return table.unpack( ret )
+		return info.args[ 1 ]( table.unpack( info.args, 2, info.args.n ) )
 	end
 )
 

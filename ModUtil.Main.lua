@@ -3,6 +3,11 @@
     Components of ModUtil that depend on loading after Main.lua
 ]]
 
+ModUtil.Anchors = {
+	Menu = { },
+	CloseFuncs = { }
+}
+
 --- bind to locals to minimise environment recursion and improve speed
 local ModUtil, pairs, ipairs, table, SaveIgnores, _G
     = ModUtil, pairs, ipairs, table, SaveIgnores, ModUtil.Internal._G
