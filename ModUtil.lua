@@ -1912,7 +1912,7 @@ ModUtil.Context.Call = ModUtil.Context(
 )
 
 function ModUtil.Context.Wrap( func, context, mod )
-	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( context, base, ... ) end, mod )
+	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
 end
 
 -- Special traversal nodes
