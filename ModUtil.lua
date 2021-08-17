@@ -9,15 +9,11 @@ Author: MagicGonads
 ModUtil = {
 
 	Mod = { },
-	Print = { },
-	ToString = { },
 	String = { },
 	Table = { },
 	Path = { },
 	Array = { },
 	IndexArray = { },
-	UpValues = { },
-	Locals = { },
 	Entangled = { },
 	Internal = { },
 	Metatables = { }
@@ -218,6 +214,14 @@ local function ToLookup( tableArg )
 	return lookup
 end
 
+local function tableFunction( t, f )
+	return setmetatable( t, {
+		__call = function( _, ... )
+			return f( ... )
+		end
+	} )
+end
+
 -- Managed Object Data
 
 local objectData = setmetatable( { }, { __mode = "k" } )
@@ -376,13 +380,11 @@ function ModUtil.Callable( obj )
 	return obj, meta, pobj
 end
 
-setmetatable( ModUtil.ToString, {
-	__call = function ( _, o )
-		local identifier = ModUtil.Identifiers.Data[ o ]
-		identifier = identifier and identifier .. ":" or ""
-		return identifier .. ModUtil.ToString.Static( o )
-	end
-})
+ModUtil.ToString = tableFunction( { }, function( o )
+	local identifier = ModUtil.Identifiers.Data[ o ]
+	identifier = identifier and identifier .. ":" or ""
+	return identifier .. ModUtil.ToString.Static( o )
+end )
 
 function ModUtil.ToString.Address( o )
 	local t = type( o )
@@ -596,18 +598,16 @@ end
 
 -- Print
 
-setmetatable( ModUtil.Print, {
-	__call = function ( _, ... )
-		print( ... )
-		if DebugPrint then ModUtil.Print.Debug( ... ) end
-		if io then
-			if io.stdout ~= io.output( ) then
-				ModUtil.Print.ToFile( io.output( ), ... )
-			end
-			io.flush( )
+ModUtil.Print = tableFunction( { }, function ( ... )
+	print( ... )
+	if DebugPrint then ModUtil.Print.Debug( ... ) end
+	if io then
+		if io.stdout ~= io.output( ) then
+			ModUtil.Print.ToFile( io.output( ), ... )
 		end
+		io.flush( )
 	end
-})
+end )
 
 function ModUtil.Print.ToFile( file, ... )
 	local close = false
@@ -1181,14 +1181,12 @@ ModUtil.Metatables.UpValues = {
 	end
 }
 
-setmetatable( ModUtil.UpValues, {
-	__call = function( _, func )
-		if type( func ) ~= "function" then
-			func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
-		end
-		return ModUtil.ObjectDataProxy( { func = func }, ModUtil.Metatables.UpValues )
+ModUtil.UpValues = tableFunction( { }, function( func )
+	if type( func ) ~= "function" then
+		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-})
+	return ModUtil.ObjectDataProxy( { func = func }, ModUtil.Metatables.UpValues )
+end )
 
 local idData = { }
 setmetatable( idData, { __mode = "k" } )
@@ -1462,11 +1460,9 @@ ModUtil.Metatables.Locals = {
 	end
 }
 
-setmetatable( ModUtil.Locals, {
-	__call = function( _, level )
-		return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
-	end
-} )
+ModUtil.Locals = tableFunction( { }, function( level )
+	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
+end )
 
 ModUtil.Metatables.Locals.Values = {
 	__index = function( self, idx )
@@ -1803,25 +1799,21 @@ ModUtil.Entangled.Map = {
 	Unique = { }
 }
 
-setmetatable( ModUtil.Entangled.Map, {
-	__call = function( )
-		local data, preImage = { }, { }
-		data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
-		data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
-		preImage = ModUtil.ObjectDataProxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
-		return { Data = data, Index = preImage, PreImage = preImage }
-	end
-} )
+ModUtil.Entangled.Map = tableFunction( { }, function( )
+	local data, preImage = { }, { }
+	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
+	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
+	preImage = ModUtil.ObjectDataProxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
+	return { Data = data, Index = preImage, PreImage = preImage }
+end )
 
-setmetatable( ModUtil.Entangled.Map.Unique, {
-	__call = function( )
-		local data, inverse = { }, { }
-		data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
-		data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
-		inverse = ModUtil.ObjectDataProxy( inverse, ModUtil.Metatables.Entangled.Map.Unique.Inverse )
-		return { Data = data, Index = inverse, Inverse = inverse }
-	end
-} )
+ModUtil.Entangled.Map.Unique = tableFunction( { }, function( )
+	local data, inverse = { }, { }
+	data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
+	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
+	inverse = ModUtil.ObjectDataProxy( inverse, ModUtil.Metatables.Entangled.Map.Unique.Inverse )
+	return { Data = data, Index = inverse, Inverse = inverse }
+end )
 
 -- Context Managers
 
@@ -1869,11 +1861,9 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-setmetatable( ModUtil.Context, {
-	__call = function( _, callContextProcessor, postCall )
-		return ModUtil.ObjectDataProxy( { callContextProcessor = callContextProcessor, postCall = postCall }, ModUtil.Metatables.Context )
-	end
-} )
+ModUtil.Context = tableFunction( { }, function( callContextProcessor, postCall )
+	return ModUtil.ObjectDataProxy( { callContextProcessor = callContextProcessor, postCall = postCall }, ModUtil.Metatables.Context )
+end )
 
 ModUtil.Context.Data = ModUtil.Context( function( info )
 	local tbl = info.arg
@@ -1994,45 +1984,52 @@ setmetatable( getObjectData( ModUtil.Mods.Data, "Inverse" ), { __mode = "k" } )
 setmetatable( getObjectData( ModUtil.Mods.Inverse, "Data" ), { __mode = "v" } )
 ModUtil.Mods.Data.ModUtil = ModUtil
 
--- Function Wrapping, Overriding, Referral
+-- Function Wrapping, Decoration, Overriding, Referral
 
-local wrapCallbacks = { }
-setmetatable( wrapCallbacks, { __mode = "k" } )
+local decorators = { }
+setmetatable( decorators, { __mode = "k" } )
 local overrides = { }
 setmetatable( overrides, { __mode = "k" } )
 
-function ModUtil.Wrap( base, wrap, mod )
-	local obj = { Base = base, Wrap = wrap, Mod = mod }
-	local func = function( ... ) return wrap( base, ... ) end
-	wrapCallbacks[ func ] = obj
-	return func
+local function wrapDecorator( wrap )
+	return function( base ) return function( ... ) wrap( base, ... ) end end
 end
 
-function ModUtil.Unwrap( obj )
-	local callback = wrapCallbacks[ obj ]
+ModUtil.Decorate = tableFunction ( { }, function( base, func, mod )
+	local out = func( base )
+	decorators[ out ] = { Base = base, Func = func, Mod = mod }
+	return out
+end )
+
+function ModUtil.Wrap( base, wrap, mod )
+	return ModUtil.Decorate( base, wrapDecorator( wrap ), mod )
+end
+
+function ModUtil.Decorate.Undo( obj )
+	local callback = decorators[ obj ]
 	return callback and callback.Base or obj
 end
 
-function ModUtil.Rewrap( obj )
-	local node = wrapCallbacks[ obj ]
+function ModUtil.Decorate.Redo( obj )
+	local node = decorators[ obj ]
 	if not node then return ModUtil.Overriden( obj ) end
-	return ModUtil.Wrap( ModUtil.Rewrap( node.Base ), node.Wrap, node.Mod )
+	return ModUtil.Decorate( ModUtil.Decorate.Redo( node.Base ), node.Func, node.Mod )
 end
 
 function ModUtil.Override( base, value, mod )
     local obj = { Base = ModUtil.Original( base ), Mod = mod }
     overrides[ value ] = obj
-    return ModUtil.Rewrap( value )
+    return ModUtil.Decorate.Redo( value )
 end
 
 function ModUtil.Overriden( obj )
-	local node = wrapCallbacks[ obj ]
+	local node = decorators[ obj ]
 	if not node then return obj end
 	return ModUtil.Original( node.Base )
 end
 
 function ModUtil.Original( obj )
-	local node = wrapCallbacks[ obj ] or overrides[ obj ]
+	local node = decorators[ obj ] or overrides[ obj ]
 	if not node then return obj end
 	return ModUtil.Original( node.Base )
 end
@@ -2083,20 +2080,24 @@ end
 
 ModUtil.IndexArray.Context = { }
 
-function ModUtil.IndexArray.Wrap( baseTable, indexArray, wrapFunc, mod )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrapFunc, mod )
+function ModUtil.IndexArray.Wrap( baseTable, indexArray, wrap, mod )
+	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
 end
 
 function ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, context, mod )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
 end
 
-function ModUtil.IndexArray.Unwrap( baseTable, indexArray )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Unwrap )
+ModUtil.Path.Decorate = tableFunction( { }, function( baseTable, indexArray, func, mod )
+	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
+end )
+
+function ModUtil.IndexArray.Decorate.Undo( baseTable, indexArray )
+	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Undo )
 end
 
-function ModUtil.IndexArray.Rewrap( baseTable, indexArray )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Rewrap )
+function ModUtil.IndexArray.Decorate.Redo( baseTable, indexArray )
+	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Redo )
 end
 
 function ModUtil.IndexArray.Override( baseTable, indexArray, value, mod )
@@ -2123,20 +2124,24 @@ end
 
 ModUtil.Path.Context = { }
 
-function ModUtil.Path.Wrap( path, wrapFunc, mod )
-	ModUtil.Path.Map( path, ModUtil.Wrap, wrapFunc, mod )
+function ModUtil.Path.Wrap( path, wrap, mod )
+	ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
 end
 
 function ModUtil.Path.Context.Wrap( path, context, mod )
 	ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
 end
 
-function ModUtil.Path.Unwrap( path )
-	ModUtil.Path.Map( path, ModUtil.Unwrap )
+ModUtil.Path.Decorate = tableFunction( { }, function( path, func, mod )
+	ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
+end )
+
+function ModUtil.Path.Decorate.Undo( path )
+	ModUtil.Path.Map( path, ModUtil.Decorate.Undo )
 end
 
-function ModUtil.Path.Rewrap( path )
-	ModUtil.Path.Map( path, ModUtil.Rewrap )
+function ModUtil.Path.Decorate.Redo( path )
+	ModUtil.Path.Map( path, ModUtil.Decorate.Redo )
 end
 
 function ModUtil.Path.Override( path, value, mod )
@@ -2165,9 +2170,9 @@ do
 	local ups = ModUtil.UpValues( function( )
 	return _G,
 		objectData, newObjectData, getObjectData,
-		wrapCallbacks, overrides,
+		decorators, overrides,
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
-		pusherror, getname,
+		pusherror, getname, tableFunction,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
 	setmetatable( ModUtil.Internal, { __index = ups, __newindex = ups } )
