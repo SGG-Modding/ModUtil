@@ -1841,12 +1841,12 @@ ModUtil.Metatables.Context = {
 		
 		threadEnvironments[ thread ] = contextInfo.env
 		contextInfo.response = table.pack( contextInfo.wrap( table.unpack( contextInfo.params ) ) )
+		threadEnvironments[ thread ] = penv
 
 		if getObjectData( self, "postCall" ) then
 			contextInfo.final = table.pack( getObjectData( self, "postCall" )( contextInfo ) )
 		end
 
-		threadEnvironments[ thread ] = penv
 		threadContexts[ thread ] = contextInfo.parent
 
 		if contextInfo.final then
@@ -1891,7 +1891,28 @@ ModUtil.Context.Call = ModUtil.Context(
 		info.env = setmetatable( { }, { __index = info.penv } )
 	end,
 	function ( info )
-		return info.arg( table.unpack( info.args ) )
+		local thread = coroutine.running( )
+		local penv = threadEnvironments[ thread ]
+		threadEnvironments[ thread ] = info.env
+		local ret = table.pack( info.arg( table.unpack( info.args ) ) )
+		threadEnvironments[ thread ] = penv
+		return table.unpack( ret )
+	end
+)
+
+ModUtil.Context.StaticWrap = ModUtil.Context(
+	function( info )
+		info.env = setmetatable( { }, { __index = info.penv } )
+	end,
+	function ( info )
+		return ModUtil.Wrap( info.arg, function( base, ... ) 
+			local thread = coroutine.running( )
+			local penv = threadEnvironments[ thread ]
+			threadEnvironments[ thread ] = info.env
+			local ret = table.pack( base( ... ) )
+			threadEnvironments[ thread ] = penv
+			return table.unpack( ret )
+		end, info.args[1] )
 	end
 )
 
@@ -2082,6 +2103,10 @@ function ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, context, mod )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
 end
 
+function ModUtil.IndexArray.Context.StaticWrap( baseTable, indexArray, context, mod )
+	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.StaticWrap, context, mod )
+end
+
 ModUtil.IndexArray.Decorate = calltable( function( baseTable, indexArray, func, mod )
 	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
@@ -2106,8 +2131,6 @@ function ModUtil.IndexArray.Original( baseTable, indexArray )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Original )
 end
 
-
-
 function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
 	return ModUtil.ReferFunction( ModUtil.IndexArray.Get, baseTable, indexArray )
 end
@@ -2126,6 +2149,10 @@ end
 
 function ModUtil.Path.Context.Wrap( path, context, mod )
 	ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
+end
+
+function ModUtil.Path.Context.StaticWrap( path, context, mod )
+	ModUtil.Path.Map( path, ModUtil.Context.StaticWrap, context, mod )
 end
 
 ModUtil.Path.Decorate = calltable( function( path, func, mod )
