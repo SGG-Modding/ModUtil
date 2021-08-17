@@ -2107,6 +2107,11 @@ function ModUtil.IndexArray.Context.StaticWrap( baseTable, indexArray, context, 
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.StaticWrap, context, mod )
 end
 
+function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
+	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context )
+end
+
+
 ModUtil.IndexArray.Decorate = calltable( function( baseTable, indexArray, func, mod )
 	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
@@ -2153,6 +2158,10 @@ end
 
 function ModUtil.Path.Context.StaticWrap( path, context, mod )
 	ModUtil.Path.Map( path, ModUtil.Context.StaticWrap, context, mod )
+end
+
+function ModUtil.Path.Context.Env( path, context )
+	ModUtil.Path.Map( path, ModUtil.Context.Env, context )
 end
 
 ModUtil.Path.Decorate = calltable( function( path, func, mod )
