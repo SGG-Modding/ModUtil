@@ -1795,11 +1795,7 @@ ModUtil.Metatables.Entangled.Map = {
 
 }
 
-ModUtil.Entangled.Map = {
-	Unique = { }
-}
-
-ModUtil.Entangled.Map = tableFunction( { }, function( )
+ModUtil.Entangled.Map = tableFunction( { Unique = { } }, function( )
 	local data, preImage = { }, { }
 	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
@@ -1816,8 +1812,6 @@ ModUtil.Entangled.Map.Unique = tableFunction( { }, function( )
 end )
 
 -- Context Managers
-
-ModUtil.Context = { }
 
 local threadContexts = { }
 setmetatable( threadContexts, { __mode = "kv" } )
@@ -1992,10 +1986,10 @@ local overrides = { }
 setmetatable( overrides, { __mode = "k" } )
 
 local function wrapDecorator( wrap )
-	return function( base ) return function( ... ) wrap( base, ... ) end end
+	return function( base ) return function( ... ) return wrap( base, ... ) end end
 end
 
-ModUtil.Decorate = tableFunction ( { }, function( base, func, mod )
+ModUtil.Decorate = tableFunction( { }, function( base, func, mod )
 	local out = func( base )
 	decorators[ out ] = { Base = base, Func = func, Mod = mod }
 	return out
@@ -2088,7 +2082,7 @@ function ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, context, mod )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
 end
 
-ModUtil.Path.Decorate = tableFunction( { }, function( baseTable, indexArray, func, mod )
+ModUtil.IndexArray.Decorate = tableFunction( { }, function( baseTable, indexArray, func, mod )
 	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
 
@@ -2111,6 +2105,8 @@ end
 function ModUtil.IndexArray.Original( baseTable, indexArray )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Original )
 end
+
+
 
 function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
 	return ModUtil.ReferFunction( ModUtil.IndexArray.Get, baseTable, indexArray )
@@ -2174,6 +2170,7 @@ do
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
 		pusherror, getname,
 		tableFunction, ToLookup, wrapDecorator,
+		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
 	setmetatable( ModUtil.Internal, { __index = ups, __newindex = ups } )
