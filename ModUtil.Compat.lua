@@ -63,15 +63,15 @@ ModUtil.Compat.PathSet = ModUtil.Path.Set
 
 ModUtil.Compat.WrapFunction = ModUtil.IndexArray.Wrap
 
-ModUtil.Compat.RewrapFunction = ModUtil.IndexArray.Rewrap
+ModUtil.Compat.RewrapFunction = ModUtil.IndexArray.Decorate.Redo
 
-ModUtil.Compat.UnwrapFunction = ModUtil.IndexArray.Unwrap
+ModUtil.Compat.UnwrapFunction = ModUtil.IndexArray.Decorate.Undo
 
 ModUtil.Compat.WrapBaseFunction = ModUtil.Path.Wrap
 
-ModUtil.Compat.RewrapBaseFunction = ModUtil.Path.Rewrap
+ModUtil.Compat.RewrapBaseFunction = ModUtil.Path.Decorate.Redo
 
-ModUtil.Compat.UnwrapBaseFunction = ModUtil.Path.Unwrap
+ModUtil.Compat.UnwrapBaseFunction = ModUtil.Path.Decorate.Undo
 
 ModUtil.Compat.Override = ModUtil.IndexArray.Override
 

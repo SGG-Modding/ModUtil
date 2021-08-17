@@ -2172,7 +2172,8 @@ do
 		objectData, newObjectData, getObjectData,
 		decorators, overrides,
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
-		pusherror, getname, tableFunction,
+		pusherror, getname,
+		tableFunction, ToLookup, wrapDecorator,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
 	setmetatable( ModUtil.Internal, { __index = ups, __newindex = ups } )
