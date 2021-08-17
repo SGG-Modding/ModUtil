@@ -214,8 +214,8 @@ local function ToLookup( tableArg )
 	return lookup
 end
 
-local function tableFunction( t, f )
-	return setmetatable( t, {
+local function calltable( f, t )
+	return setmetatable( t or { }, {
 		__call = function( _, ... )
 			return f( ... )
 		end
@@ -380,7 +380,7 @@ function ModUtil.Callable( obj )
 	return obj, meta, pobj
 end
 
-ModUtil.ToString = tableFunction( { }, function( o )
+ModUtil.ToString = calltable( function( o )
 	local identifier = ModUtil.Identifiers.Data[ o ]
 	identifier = identifier and identifier .. ":" or ""
 	return identifier .. ModUtil.ToString.Static( o )
@@ -598,7 +598,7 @@ end
 
 -- Print
 
-ModUtil.Print = tableFunction( { }, function ( ... )
+ModUtil.Print = calltable( function ( ... )
 	print( ... )
 	if DebugPrint then ModUtil.Print.Debug( ... ) end
 	if io then
@@ -1181,7 +1181,7 @@ ModUtil.Metatables.UpValues = {
 	end
 }
 
-ModUtil.UpValues = tableFunction( { }, function( func )
+ModUtil.UpValues = calltable( function( func )
 	if type( func ) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
@@ -1460,7 +1460,7 @@ ModUtil.Metatables.Locals = {
 	end
 }
 
-ModUtil.Locals = tableFunction( { }, function( level )
+ModUtil.Locals = calltable( function( level )
 	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
 end )
 
@@ -1795,15 +1795,15 @@ ModUtil.Metatables.Entangled.Map = {
 
 }
 
-ModUtil.Entangled.Map = tableFunction( { Unique = { } }, function( )
+ModUtil.Entangled.Map = calltable( function( )
 	local data, preImage = { }, { }
 	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
 	preImage = ModUtil.ObjectDataProxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
 	return { Data = data, Index = preImage, PreImage = preImage }
-end )
+end, { Unique = { } } )
 
-ModUtil.Entangled.Map.Unique = tableFunction( { }, function( )
+ModUtil.Entangled.Map.Unique = calltable( function( )
 	local data, inverse = { }, { }
 	data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
@@ -1855,7 +1855,7 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-ModUtil.Context = tableFunction( { }, function( callContextProcessor, postCall )
+ModUtil.Context = calltable( function( callContextProcessor, postCall )
 	return ModUtil.ObjectDataProxy( { callContextProcessor = callContextProcessor, postCall = postCall }, ModUtil.Metatables.Context )
 end )
 
@@ -1989,7 +1989,7 @@ local function wrapDecorator( wrap )
 	return function( base ) return function( ... ) return wrap( base, ... ) end end
 end
 
-ModUtil.Decorate = tableFunction( { }, function( base, func, mod )
+ModUtil.Decorate = calltable( function( base, func, mod )
 	local out = func( base )
 	decorators[ out ] = { Base = base, Func = func, Mod = mod }
 	return out
@@ -2082,7 +2082,7 @@ function ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, context, mod )
 	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
 end
 
-ModUtil.IndexArray.Decorate = tableFunction( { }, function( baseTable, indexArray, func, mod )
+ModUtil.IndexArray.Decorate = calltable( function( baseTable, indexArray, func, mod )
 	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
 
@@ -2128,7 +2128,7 @@ function ModUtil.Path.Context.Wrap( path, context, mod )
 	ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
 end
 
-ModUtil.Path.Decorate = tableFunction( { }, function( path, func, mod )
+ModUtil.Path.Decorate = calltable( function( path, func, mod )
 	ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
 end )
 
@@ -2169,7 +2169,7 @@ do
 		decorators, overrides,
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
 		pusherror, getname,
-		tableFunction, ToLookup, wrapDecorator,
+		calltable, ToLookup, wrapDecorator,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
