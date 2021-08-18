@@ -2,20 +2,19 @@
 Mod: Mod Utility
 Author: MagicGonads
 
-	Library to allow mods to be more compatible with eachother and expand capabilities.
-	Use the mod importer to import this mod to ensure it is loaded in the right position.
+	Library to allow mods to be more compatible and expand capabilities.
 
 --]]
 ModUtil = {
 
 	Mod = { },
+	Args = { },
 	String = { },
 	Table = { },
 	Path = { },
 	Array = { },
 	IndexArray = { },
 	Entangled = { },
-	Internal = { },
 	Metatables = { }
 
 }
@@ -214,15 +213,54 @@ local function ToLookup( tableArg )
 	return lookup
 end
 
---[[
-	Set an object's call to a function
-]]
-function ModUtil.SetCall( o, f )
-	local m = getmetatable( o ) or { }
-	function m.__call( _, ... )
-		return f( ... )
+-- Type/Syntax Constants
+
+local passByValueTypes = ToLookup{ "number", "boolean", "nil" }
+local callableCandidateTypes = ToLookup{ "function", "table", "userdata" } -- string excluded because their references are managed
+local excludedFieldNames = ToLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
+
+
+-- Environment Manipulation
+
+local _G = _ENV
+local __G
+
+local threadEnvironments = setmetatable( { }, { __mode = "k" } )
+
+local function getEnv( thread )
+	return threadEnvironments[ thread or coroutine.running( ) ] or _G
+end
+
+local function replaceGlobalEnvironment( )
+	__G = debug.setmetatable( { }, {
+		__index = function( _, key )
+			return getEnv( )[ key ]
+		end,
+		__newindex = function( _, key, value )
+			getEnv( )[ key ] = value
+		end,
+		__len = function( )
+			return #getEnv( )
+		end,
+		__next = function( _, key )
+			return next( getEnv( ), key )
+		end,
+		__inext = function( _, key )
+			return inext( getEnv( ), key )
+		end,
+		__pairs = function( )
+			return pairs( getEnv( ) )
+		end,
+		__ipairs = function( )
+			return ipairs( getEnv( ) )
+		end
+	} )
+	_G._G = __G
+	local reg = debug.getregistry( )
+	for i, v in ipairs( reg ) do
+		if v == _G then reg[ i ] = __G end
 	end
-	return setmetatable( o, m )
+	ModUtil.Identifiers.Inverse._ENV = __G
 end
 
 -- Managed Object Data
@@ -269,125 +307,136 @@ function ModUtil.RawInterface( obj )
 	} )
 end
 
--- Environment Manipulation
+-- Operations on Callables
 
-local _G = _ENV
-local __G
+ModUtil.Callable = { }
 
-local threadEnvironments = setmetatable( { }, { __mode = "k" } )
-
-local function getEnv( thread )
-	return threadEnvironments[ thread or coroutine.running( ) ] or _G
-end
-
-local function replaceGlobalEnvironment( )
-	__G = debug.setmetatable( { }, {
-		__index = function( _, key )
-			return getEnv( )[ key ]
-		end,
-		__newindex = function( _, key, value )
-			getEnv( )[ key ] = value
-		end,
-		__len = function( )
-			return #getEnv( )
-		end,
-		__next = function( _, key )
-			return next( getEnv( ), key )
-		end,
-		__inext = function( _, key )
-			return inext( getEnv( ), key )
-		end,
-		__pairs = function( )
-			return pairs( getEnv( ) )
-		end,
-		__ipairs = function( )
-			return ipairs( getEnv( ) )
-		end
-	} )
-	_G._G = __G
-	local reg = debug.getregistry( )
-	for i, v in ipairs( reg ) do
-		if v == _G then reg[ i ] = __G end
-	end
-	ModUtil.Identifiers.Inverse._ENV = __G
-end
-
-local fenvData = setmetatable( { }, { __mode = "k" } )
-
-rawgetfenv = getfenv
-
-function _G.getfenv( func )
-	local fenv = fenvData[ func ]
-	if not fenv then
-		fenv = getfenv( func )
-		if fenv == __G then
-			fenv = nil
-		end
-	end
-	return fenv
-end
-
-function _G.newfenv( func )
-	local fenv = _G.getfenv( func )
-	if not fenv then
-		fenv = { }
-		fenvData[ func ] = fenv
-	end
-	return fenv
-end
-
-rawsetfenv = setfenv
-
-function _G.setfenv( func, fenv )
-	fenvData[ func ] = fenv
-	
-	setfenv( func, setmetatable( { }, {
-		__index = function( _, key )
-			local val
-			local env = threadEnvironments[ coroutine.running( ) ]
-			if env then
-				val = env[ key ]
-			end
-			if val ~= nil then return val end
-			val = fenv[ key ]
-			if val ~= nil then return val end
-			return _G[ key ]
-		end,
-		__newindex = function( _, key, val )
-			local env = threadEnvironments[ coroutine.running( ) ]
-			if env and env[ key ] ~= nil then
-				env[ key ] = val
-				return
-			end
-			if fenv[ key ] ~= nil then
-				fenv[ key ] = val
-				return
-			end
-			_G[ key ] = val
-		end
-	} ) )
-end
-
--- Data Misc
-
-local passByValueTypes = ToLookup{ "number", "boolean", "nil" }
-local callableCandidateTypes = ToLookup{ "function", "table", "userdata" }
-local excludedFieldNames = ToLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
-
-function ModUtil.Callable( obj )
+function ModUtil.Callable.Get( obj )
 	local meta, pobj
 	while obj do
 		local t = type( obj )
 		if t == "function" then break end
-		if not callableCandidateTypes[ t ] then return nil, nil, pobj end
+		if not callableCandidateTypes[ t ] then return pobj end
 		meta = getmetatable( obj )
 		if not meta then break end
 		pobj, obj = obj, rawget( meta, "__call" )
 	end
-	return obj, meta, pobj
+	return pobj, obj
 end
 
-ModUtil.ToString = ModUtil.SetCall( { }, function( o )
+function ModUtil.Callable.Set( o, f )
+	local m = getmetatable( o ) or { }
+	function m.__call( _, ... )
+		return f( ... )
+	end
+	return setmetatable( o, m )
+end
+
+ModUtil.Callable.Set( ModUtil.Callable, function ( obj )
+	local meta
+	while obj do
+		local t = type( obj )
+		if t == "function" then return true end
+		if not callableCandidateTypes[ t ] then return false end
+		meta = getmetatable( obj )
+		if not meta then break end
+		obj = rawget( meta, "__call" )
+	end
+end )
+
+-- Data Misc
+
+function ModUtil.Args.Map( mapFunc, ... )
+	local out = { }
+	local args = table.pack( ... )
+	for i = 1, args.n do
+		table.insert( out, mapFunc( args[ i ] ) )
+	end
+	return table.unpack( out )
+end
+
+function ModUtil.Args.Take( n, ... )
+	local args = table.pack( ... )
+	return table.unpack( args, 1, n )
+end
+
+function ModUtil.Args.Drop( n, ... )
+	local args = table.pack( ... )
+	return table.unpack( args, n + 1, args.n )
+end
+
+function ModUtil.Table.Map( tableArg, mapFunc )
+	local out = { }
+	for k, v in pairs( tableArg ) do
+		out[ k ] = mapFunc( v )
+	end
+	return out
+end
+
+function ModUtil.Table.Mutate( tableArg, mapFunc )
+	for k, v in pairs( tableArg ) do
+		tableArg[ k ] = mapFunc( v )
+	end
+end
+
+function ModUtil.Table.Replace( target, data )
+	for k in pairs( target ) do
+		target[ k ] = data[ k ]
+	end
+	for k, v in pairs( data ) do
+		target[ k ] = v
+	end
+end
+
+function ModUtil.Table.UnKeyed( tableArg )
+	local lk = 0
+	for k in pairs( tableArg ) do
+		if type( k ) ~= "number" then
+			return false
+		end
+		if lk + 1 ~= k then
+			return false
+		end
+		lk = k
+	end
+	return true
+end
+
+function ModUtil.String.Join( sep, ... )
+	local out = {}
+	local args = table.pack( ... )
+	out[ 1 ] = args[ 1 ]
+	for i = 2, args.n do
+		table.insert( out, sep )
+		table.insert( out, args[ i ] )
+	end
+	return table.concat( out )
+end
+
+function ModUtil.String.Chunk( text, chunkSize, maxChunks )
+	local chunks = { "" }
+	local cs = 0
+	local ncs = 1
+	for chr in text:gmatch( "." ) do
+		cs = cs + 1
+		if cs > chunkSize or chr == "\n" then
+			ncs = ncs + 1
+			if maxChunks and ncs > maxChunks then
+				return chunks
+			end
+			chunks[ ncs ] = ""
+			cs = 0
+		end
+		if chr ~= "\n" then
+			chunks[ ncs ] = chunks[ ncs ] .. chr
+		end
+	end
+	return chunks
+end
+
+-- String Representations
+
+ModUtil.ToString = ModUtil.Callable.Set( { }, function( o )
 	local identifier = ModUtil.Identifiers.Data[ o ]
 	identifier = identifier and identifier .. ":" or ""
 	return identifier .. ModUtil.ToString.Static( o )
@@ -525,87 +574,9 @@ function ModUtil.ToString.DeepNamespaces( o, seen )
 	end
 end
 
-function ModUtil.MapVars( mapFunc, ... )
-	local out = { }
-	local args = table.pack( ... )
-	for i = 1, args.n do
-		table.insert( out, mapFunc( args[ i ] ) )
-	end
-	return table.unpack( out )
-end
-
-function ModUtil.Table.MapCopy( tableArg, mapFunc )
-	local out = { }
-	for k, v in pairs( tableArg ) do
-		out[ k ] = mapFunc( v )
-	end
-	return out
-end
-
-function ModUtil.Table.Map( tableArg, mapFunc )
-	for k, v in pairs( tableArg ) do
-		tableArg[ k ] = mapFunc( v )
-	end
-end
-
-function ModUtil.String.Join( sep, ... )
-	local out = {}
-	local args = table.pack( ... )
-	out[ 1 ] = args[ 1 ]
-	for i = 2, args.n do
-		table.insert( out, sep )
-		table.insert( out, args[ i ] )
-	end
-	return table.concat( out )
-end
-
-function ModUtil.String.Chunk( text, chunkSize, maxChunks )
-	local chunks = { "" }
-	local cs = 0
-	local ncs = 1
-	for chr in text:gmatch( "." ) do
-		cs = cs + 1
-		if cs > chunkSize or chr == "\n" then
-			ncs = ncs + 1
-			if maxChunks and ncs > maxChunks then
-				return chunks
-			end
-			chunks[ ncs ] = ""
-			cs = 0
-		end
-		if chr ~= "\n" then
-			chunks[ ncs ] = chunks[ ncs ] .. chr
-		end
-	end
-	return chunks
-end
-
-function ModUtil.Table.Replace( target, data )
-	for k in pairs( target ) do
-		target[ k ] = data[ k ]
-	end
-	for k, v in pairs( data ) do
-		target[ k ] = v
-	end
-end
-
-function ModUtil.Table.UnKeyed( tableArg )
-	local lk = 0
-	for k in pairs( tableArg ) do
-		if type( k ) ~= "number" then
-			return false
-		end
-		if lk + 1 ~= k then
-			return false
-		end
-		lk = k
-	end
-	return true
-end
-
 -- Print
 
-ModUtil.Print = ModUtil.SetCall( { }, function ( ... )
+ModUtil.Print = ModUtil.Callable.Set( { }, function ( ... )
 	print( ... )
 	if DebugPrint then ModUtil.Print.Debug( ... ) end
 	if io then
@@ -622,14 +593,14 @@ function ModUtil.Print.ToFile( file, ... )
 		file = io.open( file, "a" )
 		close = true
 	end
-	file:write( ModUtil.MapVars( tostring, ... ) )
+	file:write( ModUtil.Args.Map( tostring, ... ) )
 	if close then
 		file:close( )
 	end
 end
 
 function ModUtil.Print.Debug( ... )
-	local text = ModUtil.String.Join( "\t", ModUtil.MapVars( tostring, ... ) ):gsub( "\t", "    " )
+	local text = ModUtil.String.Join( "\t", ModUtil.Args.Map( tostring, ... ) ):gsub( "\t", "    " )
 	for line in text:gmatch( "([^\n]+)" ) do
 		DebugPrint{ Text = line }
 	end
@@ -735,85 +706,28 @@ function ModUtil.Array.Slice( state, start, stop, step )
 	return slice
 end
 
---[[
-	Safely retrieve the a value from deep inside a table, given
-	an array of indices into the table.
-
-	For example, if indexArray is { "a", 1, "c" }, then
-	Table[ "a" ][ 1 ][ "c" ] is returned. If any of Table[ "a" ],
-	Table[ "a" ][ 1 ], or Table[ "a" ][ 1 ][ "c" ] are nil, then nil
-	is returned instead.
-
-	Table			 - the table to retrieve from
-	indexArray	- the list of indices
---]]
-function ModUtil.IndexArray.Get( baseTable, indexArray )
-	local node = baseTable
-	for _, key in ipairs( indexArray ) do
-		if type( node ) ~= "table" then
-			return nil
-		end
-		local nodeType = ModUtil.Nodes.Inverse[ key ]
-		if nodeType then
-			node = ModUtil.Nodes.Data[ nodeType ].Get( node )
-		else
-			local call = ModUtil.Callable( key )
-			if call then
-				node = call( node )
-			else
-				node = node[ key ]
-			end
-		end
-	end
-	return node
+function ModUtil.Array.Copy( a )
+	return { table.unpack( a ) }
 end
 
 --[[
-	Safely set a value deep inside a table, given an array of
-	indices into the table, and creating any necessary tables
-	along the way.
+	Concatenates arrays, in order.
 
-	For example, if indexArray is { "a", 1, "c" }, then
-	Table[ "a" ][ 1 ][ "c" ] = Value once this function returns.
-	If any of Table[ "a" ] or Table[ "a" ][ 1 ] does not exist, they
-	are created.
-
-	baseTable	 - the table to set the value in
-	indexArray	- the list of indices
-	value	- the value to add
+	a, ... - the arrays
 --]]
-function ModUtil.IndexArray.Set( baseTable, indexArray, value )
-	if next( indexArray ) == nil then
-		return false -- can't set the input argument
+function ModUtil.Array.Join( a, ... )
+	local b = ...
+	if not b then return ModUtil.Array.Copy( a ) end
+	local c = { }
+	local j = 0
+	for i, v in ipairs( a ) do
+		c[ i ] = v
+		j = i
 	end
-	local n = #indexArray -- change to shallow copy + table.remove later
-	local node = baseTable
-	for i = 1, n - 1 do
-		local key = indexArray[ i ]
-		if not ModUtil.Nodes.New( node, key ) then return false end
-		local nodeType = ModUtil.Nodes.Inverse[ key ]
-		if nodeType then
-			node = ModUtil.Nodes.Data[ nodeType ].Get( node )
-		else
-			local call = ModUtil.Callable( key )
-			if call then
-				node = call( node )
-			else
-				node = node[ key ]
-			end
-		end
+	for i, v in ipairs( b ) do
+		c[ i + j ] = v
 	end
-	local key = indexArray[ n ]
-	local nodeType = ModUtil.Nodes.Inverse[ key ]
-	if nodeType then
-		return ModUtil.Nodes.Data[ nodeType ].Set( node, value )
-	end
-	local call = ModUtil.Callable( key )
-	if call then
-		return call( node, value )
-	end
-	node[ key ] = value
-	return true
+	return ModUtil.Array.Join( c, ModUtil.Args.Drop( 1, ... ) )
 end
 
 --[[
@@ -897,38 +811,91 @@ function ModUtil.Table.Merge( inTable, setTable )
 	end
 end
 
+-- Index Array Manipulation
+
+--[[
+	Safely retrieve the a value from deep inside a table, given
+	an array of indices into the table.
+
+	For example, if indexArray is { "a", 1, "c" }, then
+	Table[ "a" ][ 1 ][ "c" ] is returned. If any of Table[ "a" ],
+	Table[ "a" ][ 1 ], or Table[ "a" ][ 1 ][ "c" ] are nil, then nil
+	is returned instead.
+
+	Table			 - the table to retrieve from
+	indexArray	- the list of indices
+--]]
+function ModUtil.IndexArray.Get( baseTable, indexArray )
+	local node = baseTable
+	for _, key in ipairs( indexArray ) do
+		if type( node ) ~= "table" then
+			return nil
+		end
+		local nodeType = ModUtil.Node.Inverse[ key ]
+		if nodeType then
+			node = ModUtil.Node.Data[ nodeType ].Get( node )
+		else
+			node = node[ key ]
+		end
+	end
+	return node
+end
+
+--[[
+	Safely set a value deep inside a table, given an array of
+	indices into the table, and creating any necessary tables
+	along the way.
+
+	For example, if indexArray is { "a", 1, "c" }, then
+	Table[ "a" ][ 1 ][ "c" ] = Value once this function returns.
+	If any of Table[ "a" ] or Table[ "a" ][ 1 ] does not exist, they
+	are created.
+
+	baseTable	 - the table to set the value in
+	indexArray	- the list of indices
+	value	- the value to add
+--]]
+function ModUtil.IndexArray.Set( baseTable, indexArray, value )
+	if next( indexArray ) == nil then
+		return false -- can't set the input argument
+	end
+	local n = #indexArray -- change to shallow copy + table.remove later
+	local node = baseTable
+	for i = 1, n - 1 do
+		local key = indexArray[ i ]
+		if not ModUtil.Node.New( node, key ) then return false end
+		local nodeType = ModUtil.Node.Inverse[ key ]
+		if nodeType then
+			node = ModUtil.Node.Data[ nodeType ].Get( node )
+		else
+			node = node[ key ]
+		end
+	end
+	local key = indexArray[ n ]
+	local nodeType = ModUtil.Node.Inverse[ key ]
+	if nodeType then
+		return ModUtil.Node.Data[ nodeType ].Set( node, value )
+	end
+	node[ key ] = value
+	return true
+end
+
 function ModUtil.IndexArray.Map( baseTable, indexArray, map, ... )
 	ModUtil.IndexArray.Set( baseTable, indexArray, map( ModUtil.IndexArray.Get( baseTable, indexArray ), ... ) )
 end
 
---[[
-	Concatenates two index arrays, in order.
-
-	a, b - the index arrays
---]]
-function ModUtil.IndexArray.Join( a, b )
-	local c = { }
-	local j = 0
-	for i, v in ipairs( a ) do
-		c[ i ] = v
-		j = i
-	end
-	for i, v in ipairs( b ) do
-		c[ i + j ] = v
-	end
-	return c
-end
-
 -- Path Manipulation
+
+function ModUtil.Path.Join( p, ... )
+	local q = ...
+	if not q then return p end
+	if p == '' then return ModUtil.Path.Join( q, ModUtil.Args.Drop( 1, ... ) ) end
+	if q == '' then return ModUtil.Path.Join( p, ModUtil.Args.Drop( 1, ... ) ) end
+	return ModUtil.Path.Join( p .. '.' .. q, ModUtil.Args.Drop( 1, ... ) )
+end
 
 function ModUtil.Path.Map( path, map, ... )
 	ModUtil.IndexArray.Map( _ENV, ModUtil.Path.IndexArray( path ), map, ... )
-end
-
-function ModUtil.Path.Join( a, b )
-	if a == '' then return b end
-	if b == '' then return a end
-	return a .. '.' .. b
 end
 
 --[[
@@ -1188,7 +1155,7 @@ ModUtil.Metatables.UpValues = {
 	end
 }
 
-ModUtil.UpValues = ModUtil.SetCall( { }, function( func )
+ModUtil.UpValues = ModUtil.Callable.Set( { }, function( func )
 	if type( func ) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
@@ -1467,7 +1434,7 @@ ModUtil.Metatables.Locals = {
 	end
 }
 
-ModUtil.Locals = ModUtil.SetCall( { }, function( level )
+ModUtil.Locals = ModUtil.Callable.Set( { }, function( level )
 	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
 end )
 
@@ -1639,6 +1606,104 @@ end
 
 ModUtil.Metatables.Entangled = { }
 
+ModUtil.Metatables.Entangled.Union = {
+
+	__index = function( self, key )
+		local value
+		for t in pairs( getObjectData( self, "Members" ) ) do
+			value = t[ key ]
+			if value ~= nil then
+				return value
+			end
+		end
+		return getObjectData( self, "Reserve" )[ key ]
+	end,
+	__newindex = function( self, key, value )
+		if value ~= nil then
+			getObjectData( self, "Keys" )[ key ] = true
+		else
+			getObjectData( self, "Keys" )[ key ] = nil
+		end
+		local hit = false
+		for t in pairs( getObjectData( self, "Members" ) ) do
+			if t[ key ] ~= nil then
+				t[ key ] = value
+				hit = true
+			end
+		end
+		if hit then
+			getObjectData( self, "Reserve" )[ key ] = nil
+		else
+			getObjectData( self, "Reserve" )[ key ] = value
+		end
+	end,
+	__len = function( self )
+		local m = #getObjectData( self, "Reserve" )
+		local n
+		for t in pairs( getObjectData( self, "Members" ) ) do
+			n = #t
+			if n > m then
+				m = n
+			end
+		end
+		return m
+	end,
+	__next = function( self, key )
+		key = next( getObjectData( self, "Keys" ), key )
+		return key, self[ key ]
+	end,
+	__inext = function( self, idx )
+		idx = ( idx or 0 ) + 1
+		local val = self[ idx ]
+		if val == nil then return end
+		return idx, val
+	end,
+	__pairs = function( self )
+		return qrawpairs( self )
+	end,
+	__ipairs = function( self )
+		return qrawipairs( self )
+	end
+
+}
+
+ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( ... )
+	local keys, members = { }, ToLookup{ ... }
+	local union = { Reserve = { }, Keys = keys, Members = members }
+	for t in pairs( members ) do
+		for k in pairs( t ) do
+			keys[ k ] = true
+		end
+	end
+	return ModUtil.ObjectDataProxy( union, ModUtil.Metatables.Entangled.Union )
+end )
+
+function ModUtil.Entangled.Union.Add( union, ... )
+	local members = getObjectData( union, "Members" )
+	local keys = getObjectData( union, "Keys" )
+	local reserve = getObjectData( union, "Reserve" )
+	for t in pairs( ToLookup{ ... } ) do
+		members[ t ] = true
+		for k in pairs( t ) do
+			keys[ k ] = true
+			reserve[ k ] = nil
+		end
+	end
+end
+
+function ModUtil.Entangled.Union.Sub( union, ... )
+	local members = getObjectData( union, "Members" )
+	local keys = getObjectData( union, "Keys" )
+	for t in pairs( ToLookup{ ... } ) do
+		members[ t ] = nil
+	end
+	for k in pairs( keys ) do
+		if union[ k ] == nil then
+			keys[ k ] = nil
+		end
+	end
+end
+
 ModUtil.Metatables.Entangled.Map = {
 
 	Data = {
@@ -1802,7 +1867,7 @@ ModUtil.Metatables.Entangled.Map = {
 
 }
 
-ModUtil.Entangled.Map = ModUtil.SetCall( { Unique = { } }, function( )
+ModUtil.Entangled.Map = ModUtil.Callable.Set( { Unique = { } }, function( )
 	local data, preImage = { }, { }
 	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
@@ -1810,7 +1875,7 @@ ModUtil.Entangled.Map = ModUtil.SetCall( { Unique = { } }, function( )
 	return { Data = data, Index = preImage, PreImage = preImage }
 end )
 
-ModUtil.Entangled.Map.Unique = ModUtil.SetCall( { }, function( )
+ModUtil.Entangled.Map.Unique = ModUtil.Callable.Set( { }, function( )
 	local data, inverse = { }, { }
 	data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
@@ -1862,7 +1927,7 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-ModUtil.Context = ModUtil.SetCall( { }, function( callContextProcessor, postCall )
+ModUtil.Context = ModUtil.Callable.Set( { }, function( callContextProcessor, postCall )
 	return ModUtil.ObjectDataProxy( { callContextProcessor = callContextProcessor, postCall = postCall }, ModUtil.Metatables.Context )
 end )
 
@@ -1875,7 +1940,7 @@ ModUtil.Context.Data = ModUtil.Context( function( info )
 end )
 
 ModUtil.Context.Meta = ModUtil.Context( function( info )
-	local tbl = ModUtil.Nodes.Data.Metatable.New( info.arg )
+	local tbl = ModUtil.Node.Data.Metatable.New( info.arg )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
@@ -1884,8 +1949,8 @@ end )
 
 ModUtil.Context.Env = ModUtil.Context( function( info )
 	local func = info.arg
-	local fenv = _G.newfenv( func )
-	_G.setfenv( func, fenv )
+	local fenv = ModUtil.Node.Data.Env.New( func )
+	ModUtil.Node.Data.Env.Set( func, fenv )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return fenv[ key ] or info.penv[ key ] end,
 		__newindex = fenv
@@ -1927,17 +1992,15 @@ function ModUtil.Context.Wrap( func, context, mod )
 	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
 end
 
--- Special traversal nodes
+-- Special Traversal Nodes
 
-ModUtil.Nodes = ModUtil.Entangled.Map.Unique( )
+ModUtil.Node = ModUtil.Entangled.Map.Unique( )
 
-function ModUtil.Nodes.New( parent, key )
-	local nodeType = ModUtil.Nodes.Inverse[ key ]
+function ModUtil.Node.New( parent, key )
+	local nodeType = ModUtil.Node.Inverse[ key ]
 	if nodeType then
-		return ModUtil.Nodes.Data[ nodeType ].New( parent )
+		return ModUtil.Node.Data[ nodeType ].New( parent )
 	end
-	local call = ModUtil.Callable( key )
-	if call then return call( parent ) end
 	local tbl = parent[ key ]
 	if type( tbl ) ~= "table" then
 		tbl = { }
@@ -1946,7 +2009,61 @@ function ModUtil.Nodes.New( parent, key )
 	return tbl
 end
 
-ModUtil.Nodes.Data.Metatable = {
+local fenvData = setmetatable( { }, { __mode = "k" } )
+
+ModUtil.Node.Data.Env = {
+	New = function( func )
+		local fenv = _G.getfenv( func )
+		if not fenv then
+			fenv = { }
+			fenvData[ func ] = fenv
+		end
+		return fenv
+	end,
+	Get = function( func )
+		local fenv = fenvData[ func ]
+		if not fenv then
+			fenv = getfenv( func )
+			if fenv == _ENV then
+				fenv = nil
+			end
+		end
+		return fenv
+	end,
+	Set = function( func, fenv )
+
+		fenvData[ func ] = fenv
+
+		setfenv( func, setmetatable( { }, {
+			__index = function( _, key )
+				local val
+				local env = threadEnvironments[ coroutine.running( ) ]
+				if env then
+					val = env[ key ]
+				end
+				if val ~= nil then return val end
+				val = fenv[ key ]
+				if val ~= nil then return val end
+				return _G[ key ]
+			end,
+			__newindex = function( _, key, val )
+				local env = threadEnvironments[ coroutine.running( ) ]
+				if env and env[ key ] ~= nil then
+					env[ key ] = val
+					return
+				end
+				if fenv[ key ] ~= nil then
+					fenv[ key ] = val
+					return
+				end
+				_G[ key ] = val
+			end
+		} ) )
+
+	end
+}
+
+ModUtil.Node.Data.Metatable = {
 	New = function( obj )
 		local meta = getmetatable( obj )
 		if meta == nil then
@@ -1964,23 +2081,22 @@ ModUtil.Nodes.Data.Metatable = {
 	end
 }
 
-ModUtil.Nodes.Data.Call = {
+ModUtil.Node.Data.Call = {
 	New = function( obj )
-		local call = ModUtil.Callable( obj )
+		local _, call = ModUtil.Callable.Get( obj )
 		return call or error( "node new rejected, new call nodes are not meaningfully mutable.", 2 )
 	end,
 	Get = function( obj )
-		local call = ModUtil.Callable( obj )
+		local _, call = ModUtil.Callable.Get( obj )
 		return call
 	end,
 	Set = function( obj, value )
-		local _, meta, parent = ModUtil.Callable( obj )
-		rawset( getmetatable( setmetatable( parent, meta or { } ) ), "__call", value )
+		ModUtil.Callable.Set( ModUtil.Callable.Get( obj ), value )
 		return true
 	end
 }
 
-ModUtil.Nodes.Data.UpValues = {
+ModUtil.Node.Data.UpValues = {
 	New = function( obj )
 		return ModUtil.UpValues( obj )
 	end,
@@ -2017,7 +2133,7 @@ local function wrapDecorator( wrap )
 	return function( base ) return function( ... ) return wrap( base, ... ) end end
 end
 
-ModUtil.Decorate = ModUtil.SetCall( { }, function( base, func, mod )
+ModUtil.Decorate = ModUtil.Callable.Set( { }, function( base, func, mod )
 	local out = func( base )
 	decorators[ out ] = { Base = base, Func = func, Mod = mod }
 	return out
@@ -2119,7 +2235,7 @@ function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
 end
 
 
-ModUtil.IndexArray.Decorate = ModUtil.SetCall( { }, function( baseTable, indexArray, func, mod )
+ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( baseTable, indexArray, func, mod )
 	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
 
@@ -2171,7 +2287,7 @@ function ModUtil.Path.Context.Env( path, context )
 	ModUtil.Path.Map( path, ModUtil.Context.Env, context )
 end
 
-ModUtil.Path.Decorate = ModUtil.SetCall( { }, function( path, func, mod )
+ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( path, func, mod )
 	ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
 end )
 
@@ -2205,6 +2321,8 @@ end
 
 -- Internal access
 
+ModUtil.Internal = ModUtil.Entangled.Union( )
+
 do
 	local ups = ModUtil.UpValues( function( )
 	return _G,
@@ -2215,9 +2333,10 @@ do
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
-	setmetatable( ModUtil.Internal, { __index = ups, __newindex = ups } )
+	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end
 
 -- Final Actions
 
 replaceGlobalEnvironment( )
+
