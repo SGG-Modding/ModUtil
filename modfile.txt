@@ -3,6 +3,7 @@
 Load Priority 0
 	To "Scripts/Main.lua"
 		Top Import "ModUtil.lua"
+		Import "ModUtil.Extra.lua"
 		Import "ModUtil.Main.lua"
 		Import "ModUtil.Compat.lua"
 	To "Scripts/RoomManager.lua"
