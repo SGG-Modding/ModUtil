@@ -214,12 +214,15 @@ local function ToLookup( tableArg )
 	return lookup
 end
 
-local function calltable( f, t )
-	return setmetatable( t or { }, {
-		__call = function( _, ... )
-			return f( ... )
-		end
-	} )
+-- Callable table setup
+
+function ModUtil.Table.SetCall( t, f )
+	t = t or { }
+	local m = getmetatable( t ) or { }
+	function m.__call( _, ... )
+		return f( ... )
+	end
+	return setmetatable( t, m )
 end
 
 -- Managed Object Data
@@ -311,6 +314,8 @@ end
 
 local fenvData = setmetatable( { }, { __mode = "k" } )
 
+rawgetfenv = getfenv
+
 function _G.getfenv( func )
 	local fenv = fenvData[ func ]
 	if not fenv then
@@ -330,6 +335,8 @@ function _G.newfenv( func )
 	end
 	return fenv
 end
+
+rawsetfenv = setfenv
 
 function _G.setfenv( func, fenv )
 	fenvData[ func ] = fenv
@@ -380,7 +387,7 @@ function ModUtil.Callable( obj )
 	return obj, meta, pobj
 end
 
-ModUtil.ToString = calltable( function( o )
+ModUtil.ToString = ModUtil.Table.SetCall( { }, function( o )
 	local identifier = ModUtil.Identifiers.Data[ o ]
 	identifier = identifier and identifier .. ":" or ""
 	return identifier .. ModUtil.ToString.Static( o )
@@ -598,7 +605,7 @@ end
 
 -- Print
 
-ModUtil.Print = calltable( function ( ... )
+ModUtil.Print = ModUtil.Table.SetCall( { }, function ( ... )
 	print( ... )
 	if DebugPrint then ModUtil.Print.Debug( ... ) end
 	if io then
@@ -1181,7 +1188,7 @@ ModUtil.Metatables.UpValues = {
 	end
 }
 
-ModUtil.UpValues = calltable( function( func )
+ModUtil.UpValues = ModUtil.Table.SetCall( { }, function( func )
 	if type( func ) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
@@ -1460,7 +1467,7 @@ ModUtil.Metatables.Locals = {
 	end
 }
 
-ModUtil.Locals = calltable( function( level )
+ModUtil.Locals = ModUtil.Table.SetCall( { }, function( level )
 	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
 end )
 
@@ -1795,15 +1802,15 @@ ModUtil.Metatables.Entangled.Map = {
 
 }
 
-ModUtil.Entangled.Map = calltable( function( )
+ModUtil.Entangled.Map = ModUtil.Table.SetCall( { Unique = { } }, function( )
 	local data, preImage = { }, { }
 	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
 	preImage = ModUtil.ObjectDataProxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
 	return { Data = data, Index = preImage, PreImage = preImage }
-end, { Unique = { } } )
+end )
 
-ModUtil.Entangled.Map.Unique = calltable( function( )
+ModUtil.Entangled.Map.Unique = ModUtil.Table.SetCall( { }, function( )
 	local data, inverse = { }, { }
 	data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
 	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
@@ -1855,7 +1862,7 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-ModUtil.Context = calltable( function( callContextProcessor, postCall )
+ModUtil.Context = ModUtil.Table.SetCall( { }, function( callContextProcessor, postCall )
 	return ModUtil.ObjectDataProxy( { callContextProcessor = callContextProcessor, postCall = postCall }, ModUtil.Metatables.Context )
 end )
 
@@ -2010,7 +2017,7 @@ local function wrapDecorator( wrap )
 	return function( base ) return function( ... ) return wrap( base, ... ) end end
 end
 
-ModUtil.Decorate = calltable( function( base, func, mod )
+ModUtil.Decorate = ModUtil.Table.SetCall( { }, function( base, func, mod )
 	local out = func( base )
 	decorators[ out ] = { Base = base, Func = func, Mod = mod }
 	return out
@@ -2112,7 +2119,7 @@ function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
 end
 
 
-ModUtil.IndexArray.Decorate = calltable( function( baseTable, indexArray, func, mod )
+ModUtil.IndexArray.Decorate = ModUtil.Table.SetCall( { }, function( baseTable, indexArray, func, mod )
 	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
 
@@ -2164,7 +2171,7 @@ function ModUtil.Path.Context.Env( path, context )
 	ModUtil.Path.Map( path, ModUtil.Context.Env, context )
 end
 
-ModUtil.Path.Decorate = calltable( function( path, func, mod )
+ModUtil.Path.Decorate = ModUtil.Table.SetCall( { }, function( path, func, mod )
 	ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
 end )
 
@@ -2204,8 +2211,7 @@ do
 		objectData, newObjectData, getObjectData,
 		decorators, overrides,
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
-		pusherror, getname,
-		calltable, ToLookup, wrapDecorator,
+		pusherror, getname, ToLookup, wrapDecorator,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
