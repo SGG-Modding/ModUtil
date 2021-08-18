@@ -43,7 +43,7 @@ ModUtil.Compat.PrintVariables = ModUtil.Print.Variables
 
 ModUtil.Compat.Slice = ModUtil.Array.Slice
 
-ModUtil.Compat.NewTable = ModUtil.Table.New
+ModUtil.Compat.NewTable = ModUtil.Node.New
 
 ModUtil.Compat.SafeGet = ModUtil.IndexArray.Get
 
@@ -53,7 +53,7 @@ ModUtil.Compat.MapNilTable = ModUtil.Table.NilMerge
 
 ModUtil.Compat.MapSetTable = ModUtil.Table.Merge
 
-ModUtil.Compat.JoinIndexArrays = ModUtil.IndexArray.Join
+ModUtil.Compat.JoinIndexArrays = ModUtil.Array.Join
 
 ModUtil.Compat.PathToIndexArray = ModUtil.Path.IndexArray
 
