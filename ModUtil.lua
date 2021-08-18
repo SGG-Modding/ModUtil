@@ -329,19 +329,32 @@ function ModUtil.Callable.Set( o, f )
 	function m.__call( _, ... )
 		return f( ... )
 	end
-	return setmetatable( o, m )
+	return setmetatable( o, m ), f
 end
 
-ModUtil.Callable.Set( ModUtil.Callable, function ( obj )
+function ModUtil.Callable.GetFunc( o )
 	local meta
 	while obj do
 		local t = type( obj )
-		if t == "function" then return true end
-		if not callableCandidateTypes[ t ] then return false end
+		if t == "function" then return obj end
+		if not callableCandidateTypes[ t ] then return end
 		meta = getmetatable( obj )
 		if not meta then break end
 		obj = rawget( meta, "__call" )
 	end
+end
+
+function ModUtil.Callable.Map( o, f, ... )
+	local pobj, obj = ModUtil.Callable.Get( o )
+	if not pobj then
+		return f( obj, ... ), false
+	end
+	ModUtil.Callable.Set( pobj, f( obj, ... ) )
+	return o, true
+end
+
+ModUtil.Callable.Set( ModUtil.Callable, function ( obj )
+	return ModUtil.Callable.GetFunc( obj ) ~= nil
 end )
 
 -- Data Misc
@@ -2216,47 +2229,99 @@ end
 
 ---
 
+ModUtil.Callable.Context = { }
+
+function ModUtil.Callable.Wrap( obj, wrap, mod )
+	return ModUtil.Callable.Map( obj, ModUtil.Wrap, wrap, mod )
+end
+
+function ModUtil.Callable.Context.Wrap( obj, context, mod )
+	return ModUtil.Callable.Map( obj, ModUtil.Context.Wrap, context, mod )
+end
+
+function ModUtil.Callable.Context.StaticWrap( obj, context, mod )
+	return ModUtil.Callable.Map( obj, ModUtil.Context.StaticWrap, context, mod )
+end
+
+function ModUtil.Callable.Context.Env( obj, context )
+	return ModUtil.Callable.Map( obj, ModUtil.Context.Env, context )
+end
+
+ModUtil.Callable.Decorate = ModUtil.Callable.Set( { }, function( obj, func, mod )
+	return ModUtil.Callable.Map( obj, ModUtil.Decorate, func, mod )
+end )
+
+function ModUtil.Callable.Decorate.Undo( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Decorate.Undo )
+end
+
+function ModUtil.Callable.Decorate.Redo( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Decorate.Redo )
+end
+
+function ModUtil.Callable.Override( obj, value, mod )
+	return ModUtil.Callable.Map( obj, ModUtil.Override, value, mod )
+end
+
+function ModUtil.Callable.Overriden( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Overriden )
+end
+
+function ModUtil.Callable.Original( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Original )
+end
+
+function ModUtil.Callable.ReferFunction( obj )
+	return ModUtil.ReferFunction( ModUtil.Callable.GetFunc, obj )
+end
+
+function ModUtil.Callable.ReferTable( obj )
+	return ModUtil.ReferTable( ModUtil.Callable.Get, obj )
+end
+
+---
+
 ModUtil.IndexArray.Context = { }
 
 function ModUtil.IndexArray.Wrap( baseTable, indexArray, wrap, mod )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
 end
 
 function ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, context, mod )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
 end
 
 function ModUtil.IndexArray.Context.StaticWrap( baseTable, indexArray, context, mod )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.StaticWrap, context, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.StaticWrap, context, mod )
 end
 
 function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context )
 end
 
 
 ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( baseTable, indexArray, func, mod )
-	ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
+	return ModUtil.Path.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
 
 function ModUtil.IndexArray.Decorate.Undo( baseTable, indexArray )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Undo )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Undo )
 end
 
 function ModUtil.IndexArray.Decorate.Redo( baseTable, indexArray )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Redo )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Redo )
 end
 
 function ModUtil.IndexArray.Override( baseTable, indexArray, value, mod )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Override, value, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Override, value, mod )
 end
 
 function ModUtil.IndexArray.Overriden( baseTable, indexArray )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Overriden )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Overriden )
 end
 
 function ModUtil.IndexArray.Original( baseTable, indexArray )
-	ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Original )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Original )
 end
 
 function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
@@ -2272,43 +2337,43 @@ end
 ModUtil.Path.Context = { }
 
 function ModUtil.Path.Wrap( path, wrap, mod )
-	ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
+	return ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
 end
 
 function ModUtil.Path.Context.Wrap( path, context, mod )
-	ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
+	return ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
 end
 
 function ModUtil.Path.Context.StaticWrap( path, context, mod )
-	ModUtil.Path.Map( path, ModUtil.Context.StaticWrap, context, mod )
+	return ModUtil.Path.Map( path, ModUtil.Context.StaticWrap, context, mod )
 end
 
 function ModUtil.Path.Context.Env( path, context )
-	ModUtil.Path.Map( path, ModUtil.Context.Env, context )
+	return ModUtil.Path.Map( path, ModUtil.Context.Env, context )
 end
 
 ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( path, func, mod )
-	ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
+	return ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
 end )
 
 function ModUtil.Path.Decorate.Undo( path )
-	ModUtil.Path.Map( path, ModUtil.Decorate.Undo )
+	return ModUtil.Path.Map( path, ModUtil.Decorate.Undo )
 end
 
 function ModUtil.Path.Decorate.Redo( path )
-	ModUtil.Path.Map( path, ModUtil.Decorate.Redo )
+	return ModUtil.Path.Map( path, ModUtil.Decorate.Redo )
 end
 
 function ModUtil.Path.Override( path, value, mod )
-	ModUtil.Path.Map( path, ModUtil.Override, value, mod )
+	return ModUtil.Path.Map( path, ModUtil.Override, value, mod )
 end
 
 function ModUtil.Path.Overriden( path )
-	ModUtil.Path.Map( path, ModUtil.Overriden )
+	return ModUtil.Path.Map( path, ModUtil.Overriden )
 end
 
 function ModUtil.Path.Original( path )
-	ModUtil.Path.Map( path, ModUtil.Original )
+	return ModUtil.Path.Map( path, ModUtil.Original )
 end
 
 function ModUtil.Path.ReferFunction( path )
