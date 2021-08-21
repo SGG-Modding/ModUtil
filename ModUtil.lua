@@ -336,7 +336,7 @@ end
 
 -- Operations on Callables
 
-ModUtil.Callable = { }
+ModUtil.Callable = { Func = { } }
 
 function ModUtil.Callable.Get( obj )
 	local meta, pobj
@@ -359,29 +359,31 @@ function ModUtil.Callable.Set( o, f )
 	return setmetatable( o, m ), f
 end
 
-function ModUtil.Callable.GetFunc( o )
-	local meta
-	while obj do
-		local t = type( obj )
-		if t == "function" then return obj end
-		if not callableCandidateTypes[ t ] then return end
-		meta = getmetatable( obj )
-		if not meta then break end
-		obj = rawget( meta, "__call" )
-	end
-end
-
 function ModUtil.Callable.Map( o, f, ... )
 	local pobj, obj = ModUtil.Callable.Get( o )
 	if not pobj then
-		return f( obj, ... ), false
+		return nil, f( obj, ... )
 	end
-	ModUtil.Callable.Set( pobj, f( obj, ... ) )
-	return o, true
+	return ModUtil.Callable.Set( pobj, f( obj, ... ) )
+end
+
+function ModUtil.Callable.Func.Get( ... )
+	local _, f = ModUtil.Callable.Get( ... )
+	return f
+end
+
+function ModUtil.Callable.Func.Set( ... )
+	local _, f = ModUtil.Callable.Set( ... )
+	return f
+end
+
+function ModUtil.Callable.Func.Map( ... )
+	local _, f = ModUtil.Callable.Map( ... )
+	return f
 end
 
 ModUtil.Callable.Set( ModUtil.Callable, function ( obj )
-	return ModUtil.Callable.GetFunc( obj ) ~= nil
+	return ModUtil.Callable.Func.Get( obj ) ~= nil
 end )
 
 -- Data Misc
@@ -2082,9 +2084,12 @@ function ModUtil.Node.New( parent, key )
 		return ModUtil.Node.Data[ nodeType ].New( parent )
 	end
 	local tbl = parent[ key ]
-	if type( tbl ) ~= "table" then
+	if tbl == nil then
 		tbl = { }
 		parent[ key ] = tbl
+	end
+	if type( tbl ) ~= "table" then
+		error( "key already occupied by a non-table", 2 )
 	end
 	return tbl
 end
@@ -2226,7 +2231,7 @@ end
 function ModUtil.Overriden( obj )
 	local node = decorators[ obj ]
 	if not node then return obj end
-	return ModUtil.Original( node.Base )
+	return ModUtil.Overriden( node.Base )
 end
 
 function ModUtil.Original( obj )

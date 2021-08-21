@@ -93,6 +93,10 @@ ModUtil.Compat.LocalValues = ModUtil.Locals.Values
 
 ModUtil.Compat.LocalNames = ModUtil.Locals.Names
 
+function ModUtil.Compat.GetBaseBottomUpValues( funcPath )
+	return ModUtil.UpValues( ModUtil.Path.Original( funcPath ) )
+end
+
 function ModUtil.Compat.MapTable( mapFunc, tableArg )
 	return ModUtil.Table.Map( tableArg, mapFunc )
 end
