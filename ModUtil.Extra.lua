@@ -20,16 +20,20 @@ ModUtil.Callable.Decorate = ModUtil.Callable.Set( { }, function( obj, func, mod 
 	return ModUtil.Callable.Map( obj, ModUtil.Decorate, func, mod )
 end )
 
-function ModUtil.Callable.Decorate.Undo( obj )
-	return ModUtil.Callable.Map( obj, ModUtil.Decorate.Undo )
+function ModUtil.Callable.Decorate.Pop( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Decorate.Pop )
 end
 
-function ModUtil.Callable.Decorate.Redo( obj )
-	return ModUtil.Callable.Map( obj, ModUtil.Decorate.Redo )
+function ModUtil.Callable.Decorate.Refresh( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Decorate.Refresh )
 end
 
 function ModUtil.Callable.Override( obj, value, mod )
 	return ModUtil.Callable.Map( obj, ModUtil.Override, value, mod )
+end
+
+function ModUtil.Callable.Restore( obj )
+	return ModUtil.Callable.Map( obj, ModUtil.Restore )
 end
 
 function ModUtil.Callable.Overriden( obj )
@@ -73,16 +77,20 @@ ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( baseTable, in
 	return ModUtil.Path.Map( baseTable, indexArray, ModUtil.Callable.Decorate, func, mod )
 end )
 
-function ModUtil.IndexArray.Decorate.Undo( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Callable.Decorate.Undo )
+function ModUtil.IndexArray.Decorate.Pop( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Callable.Decorate.Pop )
 end
 
-function ModUtil.IndexArray.Decorate.Redo( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Callable.Decorate.Redo )
+function ModUtil.IndexArray.Decorate.Refresh( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Callable.Decorate.Refresh )
 end
 
 function ModUtil.IndexArray.Override( baseTable, indexArray, value, mod )
 	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Callable.Override, value, mod )
+end
+
+function ModUtil.IndexArray.Restore( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Callable.Restore )
 end
 
 function ModUtil.IndexArray.Overriden( baseTable, indexArray )
@@ -129,16 +137,20 @@ ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( path, func, mod )
 	return ModUtil.Path.Map( path, ModUtil.Callable.Decorate, func, mod )
 end )
 
-function ModUtil.Path.Decorate.Undo( path )
-	return ModUtil.Path.Map( path, ModUtil.Callable.Decorate.Undo )
+function ModUtil.Path.Decorate.Pop( path )
+	return ModUtil.Path.Map( path, ModUtil.Callable.Decorate.Pop )
 end
 
-function ModUtil.Path.Decorate.Redo( path )
-	return ModUtil.Path.Map( path, ModUtil.Callable.Decorate.Redo )
+function ModUtil.Path.Decorate.Refresh( path )
+	return ModUtil.Path.Map( path, ModUtil.Callable.Decorate.Refresh )
 end
 
 function ModUtil.Path.Override( path, value, mod )
 	return ModUtil.Path.Map( path, ModUtil.Callable.Override, value, mod )
+end
+
+function ModUtil.Path.Restore( path )
+	return ModUtil.Path.Map( path, ModUtil.Callable.Restore )
 end
 
 function ModUtil.Path.Overriden( path )

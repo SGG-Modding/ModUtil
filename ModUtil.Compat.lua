@@ -63,15 +63,15 @@ ModUtil.Compat.PathSet = ModUtil.Path.Set
 
 ModUtil.Compat.WrapFunction = ModUtil.IndexArray.Wrap
 
-ModUtil.Compat.RewrapFunction = ModUtil.IndexArray.Decorate.Redo
+ModUtil.Compat.RewrapFunction = ModUtil.IndexArray.Decorate.Refresh
 
-ModUtil.Compat.UnwrapFunction = ModUtil.IndexArray.Decorate.Undo
+ModUtil.Compat.UnwrapFunction = ModUtil.IndexArray.Decorate.Pop
 
 ModUtil.Compat.WrapBaseFunction = ModUtil.Path.Wrap
 
-ModUtil.Compat.RewrapBaseFunction = ModUtil.Path.Decorate.Redo
+ModUtil.Compat.RewrapBaseFunction = ModUtil.Path.Decorate.Refresh
 
-ModUtil.Compat.UnwrapBaseFunction = ModUtil.Path.Decorate.Undo
+ModUtil.Compat.UnwrapBaseFunction = ModUtil.Path.Decorate.Pop
 
 ModUtil.Compat.Override = ModUtil.IndexArray.Override
 
@@ -83,6 +83,20 @@ ModUtil.Compat.GetOriginalBaseValue = ModUtil.Path.Original
 
 ModUtil.Compat.RawInterface = ModUtil.Raw
 
+ModUtil.Compat.MapVars = ModUtil.Args.Map
+
+ModUtil.Compat.StackedUpValues = ModUtil.UpValues.Stacked
+
+ModUtil.Compat.StackedLocals = ModUtil.Locals.Stacked
+
+ModUtil.Compat.LocalValues = ModUtil.Locals.Values
+
+ModUtil.Compat.LocalNames = ModUtil.Locals.Names
+
+function ModUtil.Compat.MapTable( mapFunc, tableArg )
+	return ModUtil.Table.Map( tableArg, mapFunc )
+end
+
 function ModUtil.Compat.WrapWithinFunction( baseTable, indexArray, envIndexArray, wrapFunc, mod )
 	ModUtil.IndexArray.Context.Wrap( baseTable, indexArray, function( )
 		ModUtil.IndexArray.Wrap( _G, envIndexArray, wrapFunc, mod )
@@ -92,5 +106,11 @@ end
 function ModUtil.Compat.WrapBaseWithinFunction( funcPath, baseFuncPath, wrapFunc, mod )
 	ModUtil.Path.Context.Wrap( baseFuncPath, function( )
 		ModUtil.Path.Wrap( funcPath, wrapFunc, mod )
+	end )
+end
+
+function ModUtil.BaseOverrideWithinFunction( funcPath, basePath, value, mod )
+	ModUtil.Path.Context.Wrap( funcPath, function( )
+		ModUtil.Path.Override( basePath, value, mod )
 	end )
 end

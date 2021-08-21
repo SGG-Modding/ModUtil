@@ -1,13 +1,6 @@
 
 ModUtil.Mod.Register( "Hades", ModUtil )
 
-ModUtil.Table.Merge( ModUtil.Hades, {
-	PrintStackHeight = 10,
-	PrintStackCapacity = 80
-} )
-
-ModUtil.Anchors.PrintOverhead = {}
-
 -- Global Interception
 
 local function isPath( path )
@@ -21,17 +14,31 @@ end
 	Intercept global keys which are objects to return themselves
 	This way we can use other namespaces for UI etc
 --]]
-ModUtil.IndexArray.Wrap( getmetatable( _ENV ), { "__index" }, function( baseFunc, self, key )
-	local value = baseFunc( self, key )
-	if value ~= nil then return value end
-	local t = type( key )
-	if t == "string" and isPath( key ) then
-		return ModUtil.Path.Get( key )
-	end
-	if ModUtil.Internal.callableCandidateTypes[ t ] then
-		return key
-	end
-end, ModUtil.Hades )
+do 
+
+	local meta = getmetatable( _ENV ) or { __index = rawget }
+	ModUtil.IndexArray.Wrap( meta, { "__index" }, function( baseFunc, self, key )
+		local value = baseFunc( self, key )
+		if value ~= nil then return value end
+		local t = type( key )
+		if t == "string" and isPath( key ) then
+			return ModUtil.Path.Get( key )
+		end
+		if ModUtil.Internal.callableCandidateTypes[ t ] then
+			return key
+		end
+	end, ModUtil.Hades )
+	setmetatable( _ENV, meta )
+
+end
+---
+
+ModUtil.Table.Merge( ModUtil.Hades, {
+	PrintStackHeight = 10,
+	PrintStackCapacity = 80
+} )
+
+ModUtil.Anchors.PrintOverhead = {}
 
 -- Menu Handling
 

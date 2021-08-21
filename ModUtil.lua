@@ -775,9 +775,20 @@ function ModUtil.Array.Join( a, ... )
 	return ModUtil.Array.Join( c, ModUtil.Args.Drop( 1, ... ) )
 end
 
-function ModUtil.Table.Copy( t )
+ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( t )
 	c = { }
 	for k, v in pairs( t ) do
+		c[ k ] = v
+	end
+	return c
+end )
+
+function ModUtil.Table.Copy.Deep( t )
+	c = { }
+	for k, v in pairs( t ) do
+		if type( v ) == "table" then
+			v = ModUtil.Table.Copy( v )
+		end
 		c[ k ] = v
 	end
 	return c
@@ -2158,21 +2169,58 @@ function ModUtil.Wrap( base, wrap, mod )
 	return ModUtil.Decorate( base, wrapDecorator( wrap ), mod )
 end
 
-function ModUtil.Decorate.Undo( obj )
+function ModUtil.Decorate.Pop( obj )
 	local callback = decorators[ obj ]
-	return callback and callback.Base or obj
+	if not callback then
+		error( "object has no decorators", 2 )
+		return obj -- if error is ignored
+	end
+	return callback.Base
 end
 
-function ModUtil.Decorate.Redo( obj )
-	local node = decorators[ obj ]
-	if not node then return ModUtil.Overriden( obj ) end
-	return ModUtil.Decorate( ModUtil.Decorate.Redo( node.Base ), node.Func, node.Mod )
+local function refresh( parent )
+	local node = decorators[ parent ].Base
+	node = decorators[ node ] and refresh( node ) or node
+	local new = decorators[ parent ].Func( node )
+	decorators[ new ] = { Base = node, decorators[ parent ].Func, decorators[ parent ].Mod }
+	return new
+end
+
+function ModUtil.Decorate.Refresh( obj )
+	if decorators[ obj ] then
+		return refresh( obj )
+	end
+	return obj
 end
 
 function ModUtil.Override( base, value, mod )
-    local obj = { Base = ModUtil.Original( base ), Mod = mod }
-    overrides[ value ] = obj
-    return ModUtil.Decorate.Redo( value )
+	local node, parent = base
+	while decorators[ node ] do
+		parent = node
+		node = decorators[ node ].Base
+	end
+	overrides[ value ] = { Base = node, Mod = mod }
+	if parent then
+		decorators[ parent ].Base = value
+	end
+	return ModUtil.Decorate.Refresh( base )
+end
+
+function ModUtil.Restore( base )
+	local node, parent = base
+	while decorators[ node ] do
+		parent = node
+		node = decorators[ node ].Base
+	end
+	if overrides[ node ] then
+		node = overrides[ node ].Base
+	else
+		error( "object has no overrides", 2 )
+	end
+	if parent then
+		decorators[ parent ].Base = node.Base
+	end 
+	return ModUtil.Decorate.Refresh( base )
 end
 
 function ModUtil.Overriden( obj )
@@ -2237,7 +2285,7 @@ do
 	local ups = ModUtil.UpValues( function( )
 	return _G,
 		objectData, newObjectData, getObjectData,
-		decorators, overrides,
+		decorators, overrides, refresh,
 		threadEnvironments, getEnv, replaceGlobalEnvironment,
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
