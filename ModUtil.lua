@@ -577,7 +577,7 @@ function ModUtil.ToString.Deep.NoNamespaces( o, seen )
 		first = true
 		seen = { }
 	end
-	if type( o ) == "table" and not seen[ o ] and o ~= _G and o ~= _ENV and ( first or not ModUtil.Mods.Inverse[ o ] ) then
+	if type( o ) == "table" and not seen[ o ] and not isNamespace( o ) then
 		seen[ o ] = true
 		local out = { ModUtil.ToString.Value( o ), "( " }
 		for k, v in pairs( o ) do
@@ -601,7 +601,7 @@ function ModUtil.ToString.Deep.Namespaces( o, seen )
 		first = true
 		seen = { }
 	end
-	if type( o ) == "table" and not seen[ o ] and ( first or o == _G or o == _ENV or ModUtil.Mods.Inverse[ o ] ) then
+	if type( o ) == "table" and not seen[ o ] and isNamespace( o ) then
 		seen[ o ] = true
 		local out = { ModUtil.ToString.Value( o ), "( " }
 		for k, v in pairs( o ) do
@@ -2026,16 +2026,6 @@ ModUtil.Context.Meta = ModUtil.Context( function( info )
 	} )
 end )
 
-ModUtil.Context.Env = ModUtil.Context( function( info )
-	local func = info.arg
-	local fenv = ModUtil.Node.Data.Env.New( func )
-	info.env = setmetatable( { }, {
-		__index = function( _, key ) return fenv[ key ] or info.penv[ key ] end,
-		__newindex = fenv
-	} )
-	end
-)
-
 ModUtil.Context.Call = ModUtil.Context(
 	function( info )
 		info.env = setmetatable( { }, { __index = info.penv } )
@@ -2087,61 +2077,6 @@ function ModUtil.Node.New( parent, key )
 	end
 	return tbl
 end
-
-local fenvData = setmetatable( { }, { __mode = "k" } )
-
-ModUtil.Metatables.Env = {
-	__index = function( self, key )
-		local val
-		local env = threadEnvironments[ coroutine.running( ) ]
-		if env then
-			val = env[ key ]
-		end
-		if val ~= nil then return val end
-		val = getObjectData( self, "fenv" )[ key ]
-		if val ~= nil then return val end
-		return _G[ key ]
-	end,
-	__newindex = function( self, key, val )
-		local env = threadEnvironments[ coroutine.running( ) ]
-		if env and env[ key ] ~= nil then
-			env[ key ] = val
-			return
-		end
-		local fenv = getObjectData( self, "fenv" )
-		if fenv[ key ] ~= nil then
-			fenv[ key ] = val
-			return
-		end
-		_G[ key ] = val
-	end
-}
-
-ModUtil.Node.Data.Env = {
-	New = function( func )
-		local fenv = getfenv( func )
-		if not fenv or fenv == __G then
-			fenv = { }
-			fenvData[ func ] = fenv
-		end
-		setfenv( func, ModUtil.Proxy( { fenv = fenv }, ModUtil.Metatables.Env ) )
-		return fenv
-	end,
-	Get = function( func )
-		local fenv = fenvData[ func ]
-		if not fenv then
-			fenv = getfenv( func )
-			if fenv == _ENV then
-				fenv = nil
-			end
-		end
-		return fenv
-	end,
-	Set = function( func, fenv )
-		fenvData[ func ] = fenv
-		setfenv( func, ModUtil.Proxy( { fenv = fenv }, ModUtil.Metatables.Env ) )
-	end
-}
 
 ModUtil.Node.Data.Meta = {
 	New = function( obj )
@@ -2303,7 +2238,7 @@ do
 	return _G,
 		objectData, newObjectData, getObjectData,
 		decorators, overrides,
-		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
+		threadEnvironments, getEnv, replaceGlobalEnvironment,
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
