@@ -203,9 +203,9 @@ local
 		rawpairs, rawipairs, qrawpairs, qrawipairs, tostring, getfenv, setfenv
 
 --[[
-	local version of ToLookup as to not depend on Main.lua
+	local version of toLookup as to not depend on Main.lua
 ]]
-local function ToLookup( tableArg )
+local function toLookup( tableArg )
 	local lookup = { }
 	for _, value in pairs( tableArg ) do
 		lookup[ value ] = true
@@ -215,9 +215,9 @@ end
 
 -- Type/Syntax Constants
 
-local passByValueTypes = ToLookup{ "number", "boolean", "nil" }
-local callableCandidateTypes = ToLookup{ "function", "table", "userdata" } -- string excluded because their references are managed
-local excludedFieldNames = ToLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
+local passByValueTypes = toLookup{ "number", "boolean", "nil" }
+local callableCandidateTypes = toLookup{ "function", "table", "userdata" } -- string excluded because their references are managed
+local excludedFieldNames = toLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
 
 
 -- Environment Manipulation
@@ -261,6 +261,7 @@ local function replaceGlobalEnvironment( )
 		if v == _G then reg[ i ] = __G end
 	end
 	ModUtil.Identifiers.Inverse._ENV = __G
+	rawset( __G, "_DEBUG_G", _G )
 end
 
 -- Managed Object Data
@@ -277,34 +278,60 @@ local function getObjectData( obj, key )
 	return objectData[ obj ][ key ]
 end
 
-function ModUtil.ObjectDataProxy( data, meta )
-	return setmetatable( newObjectData( data ), meta )
+ModUtil.Metatables.Proxy = {
+	__index = function( self, key )
+		return objectData[ self ][ key ]
+	end,
+	__newindex = function( self, key, value )
+		objectData[ self ][ key ] = value
+	end,
+	__len = function( self, ...)
+		return #objectdata( self )
+	end,
+	__next = function( self, ... )
+		return next( objectData[ self ], ... )
+	end,
+	__inext = function( self, ... )
+		return inext( objectData[ self ], ... )
+	end,
+	__pairs = function( self, ... )
+		return pairs( objectData[ self ], ... )
+	end,
+	__ipairs = function( self, ... )
+		return ipairs( objectData[ self ], ... )
+	end
+}
+
+function ModUtil.Proxy( data, meta )
+	return setmetatable( newObjectData( data ), meta or ModUtil.Metatables.Proxy )
 end
 
-function ModUtil.RawInterface( obj )
-	return setmetatable( { }, {
-		__index = function( _, ... )
-			return rawget( obj, ... )
-		end,
-		__newindex = function( _, ... )
-			return rawset( obj, ... )
-		end,
-		__len = function( _, ...)
-			return rawlen( obj, ... )
-		end,
-		__next = function( _, ... )
-			return rawnext( obj, ... )
-		end,
-		__inext = function( _, ... )
-			return rawinext( obj, ... )
-		end,
-		__pairs = function( _, ... )
-			return rawpairs( obj, ... )
-		end,
-		__ipairs = function( _, ... )
-			return rawipairs( obj, ... )
-		end
-	} )
+ModUtil.Metatables.Raw = {
+	__index = function( self, ... )
+		return rawget( getObjectData( self, "data" ), ... )
+	end,
+	__newindex = function( self, ... )
+		return rawset( getObjectData( self, "data" ), ... )
+	end,
+	__len = function( self, ...)
+		return rawlen( getObjectData( self, "data" ), ... )
+	end,
+	__next = function( self, ... )
+		return rawnext( getObjectData( self, "data" ), ... )
+	end,
+	__inext = function( self, ... )
+		return rawinext( getObjectData( self, "data" ), ... )
+	end,
+	__pairs = function( self, ... )
+		return rawpairs( getObjectData( self, "data" ), ... )
+	end,
+	__ipairs = function( self, ... )
+		return rawipairs( getObjectData( self, "data" ), ... )
+	end
+}
+
+function ModUtil.Raw( obj )
+	return ModUtil.Proxy( { data = obj }, ModUtil.Metatables.Raw )
 end
 
 -- Operations on Callables
@@ -521,7 +548,7 @@ function ModUtil.ToString.Shallow( o )
 	end
 end
 
-function ModUtil.ToString.Deep( o, seen )
+ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( o, seen )
 	seen = seen or { }
 	if type( o ) == "table" and not seen[ o ] then
 		seen[ o ] = true
@@ -537,9 +564,14 @@ function ModUtil.ToString.Deep( o, seen )
 	else
 		return ModUtil.ToString.Value( o )
 	end
+end )
+
+local function isNamespace( obj )
+	return obj == _G or obj == _ENV or obj == objectData or ModUtil.Mods.Inverse[ obj ]
+		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( getObjectData( obj, "data" ) ) )
 end
 
-function ModUtil.ToString.DeepNoNamespaces( o, seen )
+function ModUtil.ToString.Deep.NoNamespaces( o, seen )
 	local first = false
 	if not seen then
 		first = true
@@ -549,10 +581,10 @@ function ModUtil.ToString.DeepNoNamespaces( o, seen )
 		seen[ o ] = true
 		local out = { ModUtil.ToString.Value( o ), "( " }
 		for k, v in pairs( o ) do
-			if v ~= _G and v ~= _ENV and not ModUtil.Mods.Inverse[ v ] then
+			if not isNamespace( v ) then
 				table.insert( out, ModUtil.ToString.Key( k ) )
 				table.insert( out, ' = ' )
-				table.insert( out, ModUtil.ToString.DeepNoNamespaces( v, seen ) )
+				table.insert( out, ModUtil.ToString.Deep.NoNamespaces( v, seen ) )
 				table.insert( out , ", " )
 			end
 		end
@@ -563,7 +595,7 @@ function ModUtil.ToString.DeepNoNamespaces( o, seen )
 	end
 end
 
-function ModUtil.ToString.DeepNamespaces( o, seen )
+function ModUtil.ToString.Deep.Namespaces( o, seen )
 	local first = false
 	if not seen then
 		first = true
@@ -573,10 +605,10 @@ function ModUtil.ToString.DeepNamespaces( o, seen )
 		seen[ o ] = true
 		local out = { ModUtil.ToString.Value( o ), "( " }
 		for k, v in pairs( o ) do
-			if v == _G or v == _ENV or ModUtil.Mods.Inverse[ v ] then
+			if isNamespace( v ) then
 				table.insert( out, ModUtil.ToString.Key( k ) )
 				table.insert( out, ' = ' )
-				table.insert( out, ModUtil.ToString.DeepNamespaces( v, seen ) )
+				table.insert( out, ModUtil.ToString.Deep.Namespaces( v, seen ) )
 				table.insert( out , ", " )
 			end
 		end
@@ -658,11 +690,11 @@ function ModUtil.Print.Namespaces( level )
 	level = level or 1
 	local text
 	ModUtil.Print("Namespaces:")
-	text = ModUtil.ToString.DeepNamespaces( ModUtil.Locals( level + 1 ) )
+	text = ModUtil.ToString.Deep.Namespaces( ModUtil.Locals( level + 1 ) )
 	ModUtil.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.DeepNamespaces( ModUtil.UpValues( level + 1 ) )
+	text = ModUtil.ToString.Deep.Namespaces( ModUtil.UpValues( level + 1 ) )
 	ModUtil.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.DeepNamespaces( _ENV )
+	text = ModUtil.ToString.Deep.Namespaces( _ENV )
 	ModUtil.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
@@ -670,11 +702,11 @@ function ModUtil.Print.Variables( level )
 	level = level or 1
 	local text
 	ModUtil.Print("Variables:")
-	text = ModUtil.ToString.DeepNoNamespaces( ModUtil.Locals( level + 1 ) )
+	text = ModUtil.ToString.Deep.NoNamespaces( ModUtil.Locals( level + 1 ) )
 	ModUtil.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.DeepNoNamespaces( ModUtil.UpValues( level + 1 ) )
+	text = ModUtil.ToString.Deep.NoNamespaces( ModUtil.UpValues( level + 1 ) )
 	ModUtil.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.DeepNoNamespaces( _ENV )
+	text = ModUtil.ToString.Deep.NoNamespaces( _ENV )
 	ModUtil.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
@@ -743,6 +775,38 @@ function ModUtil.Array.Join( a, ... )
 	return ModUtil.Array.Join( c, ModUtil.Args.Drop( 1, ... ) )
 end
 
+function ModUtil.Table.Copy( t )
+	c = { }
+	for k, v in pairs( t ) do
+		c[ k ] = v
+	end
+	return c
+end
+
+function ModUtil.Table.Clear( t )
+	for k in pairs( t ) do
+		t[ k ] = nil
+	end
+	return t
+end
+
+function ModUtil.Table.Transpose( t )
+	local i = { }
+	for k, v in pairs( t ) do
+		i[ v ] = k
+	end
+	return i
+end
+
+function ModUtil.Table.Flip( t )
+	local i = ModUtil.Table.Transpose( t )
+	ModUtil.Table.Clear( t )
+	for k, v in pairs( i ) do
+		t[ k ] = v
+	end
+	return t
+end
+
 --[[
 	Set all the values in inTable corresponding to keys
 	in nilTable to nil.
@@ -784,6 +848,7 @@ function ModUtil.Table.NilMerge( inTable, nilTable )
 			inTable[ nilKey ] = nil
 		end
 	end
+	return inTable
 end
 
 --[[
@@ -822,6 +887,7 @@ function ModUtil.Table.Merge( inTable, setTable )
 			inTable[ setKey ] = setVal
 		end
 	end
+	return inTable
 end
 
 -- Index Array Manipulation
@@ -1079,7 +1145,7 @@ function ModUtil.StackLevel( level )
 	end
 	size = size - level - 1
 	if size > 0 then
-		return ModUtil.ObjectDataProxy( { level = level, size = size, thread = thread }, ModUtil.Metatables.StackLevel )
+		return ModUtil.Proxy( { level = level, size = size, thread = thread }, ModUtil.Metatables.StackLevel )
 	end
 end
 
@@ -1106,11 +1172,11 @@ ModUtil.Metatables.StackLevels.__ipairs = ModUtil.Metatables.StackLevels.__pairs
 ModUtil.Metatables.StackLevels.__inext = ModUtil.Metatables.StackLevels.__next
 
 function ModUtil.StackLevels( level )
-	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( level or 0 ) }, ModUtil.Metatables.StackLevels )
+	return ModUtil.Proxy( { level = ModUtil.StackLevel( level or 0 ) }, ModUtil.Metatables.StackLevels )
 end
 
 
-local excludedUpValueNames = ToLookup{ "_ENV" }
+local excludedUpValueNames = toLookup{ "_ENV" }
 
 ModUtil.Metatables.UpValues = {
 	__index = function( self, name )
@@ -1172,7 +1238,7 @@ ModUtil.UpValues = ModUtil.Callable.Set( { }, function( func )
 	if type( func ) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.ObjectDataProxy( { func = func }, ModUtil.Metatables.UpValues )
+	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues )
 end )
 
 local idData = { }
@@ -1245,7 +1311,7 @@ function ModUtil.UpValues.Ids( func )
 	if type(func) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.ObjectDataProxy( { func = func }, ModUtil.Metatables.UpValues.Ids )
+	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues.Ids )
 end
 
 ModUtil.Metatables.UpValues.Values = {
@@ -1288,7 +1354,7 @@ function ModUtil.UpValues.Values( func )
 	if type(func) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.ObjectDataProxy( { func = func }, ModUtil.Metatables.UpValues.Values )
+	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues.Values )
 end
 
 ModUtil.Metatables.UpValues.Names = {
@@ -1322,7 +1388,7 @@ function ModUtil.UpValues.Names( func )
 	if type(func) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.ObjectDataProxy( { func = func }, ModUtil.Metatables.UpValues.Names )
+	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues.Names )
 end
 
 ModUtil.Metatables.UpValues.Stacked = {
@@ -1386,10 +1452,10 @@ ModUtil.Metatables.UpValues.Stacked = {
 }
 
 function ModUtil.UpValues.Stacked( level )
-	return ModUtil.ObjectDataProxy( { levels = ModUtil.StackLevels( ( level or 1 ) ) }, ModUtil.Metatables.UpValues.Stacked )
+	return ModUtil.Proxy( { levels = ModUtil.StackLevels( ( level or 1 ) ) }, ModUtil.Metatables.UpValues.Stacked )
 end
 
-local excludedLocalNames = ToLookup{ "(*temporary)", "(for generator)", "(for state)", "(for control)" }
+local excludedLocalNames = toLookup{ "(*temporary)", "(for generator)", "(for state)", "(for control)" }
 
 ModUtil.Metatables.Locals = {
 	__index = function( self, name )
@@ -1448,7 +1514,7 @@ ModUtil.Metatables.Locals = {
 }
 
 ModUtil.Locals = ModUtil.Callable.Set( { }, function( level )
-	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
+	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
 end )
 
 ModUtil.Metatables.Locals.Values = {
@@ -1501,7 +1567,7 @@ ModUtil.Metatables.Locals.Values.__inext = ModUtil.Metatables.Locals.Values.__ne
 	end
 --]]
 function ModUtil.Locals.Values( level )
-	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals.Values )
+	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals.Values )
 end
 
 ModUtil.Metatables.Locals.Names = {
@@ -1539,7 +1605,7 @@ ModUtil.Metatables.Locals.Names.__inext = ModUtil.Metatables.Locals.Names.__next
 	end
 --]]
 function ModUtil.Locals.Names( level )
-	return ModUtil.ObjectDataProxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals.Names )
+	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals.Names )
 end
 
 ModUtil.Metatables.Locals.Stacked = {
@@ -1612,7 +1678,7 @@ ModUtil.Metatables.Locals.Stacked = {
 	and its 'local hasRequirement' as ModUtil.Locals.Stacked( ).hasRequirement.
 --]]
 function ModUtil.Locals.Stacked( level )
-	return ModUtil.ObjectDataProxy( { levels = ModUtil.StackLevels( level or 1 ) }, ModUtil.Metatables.Locals.Stacked )
+	return ModUtil.Proxy( { levels = ModUtil.StackLevels( level or 1 ) }, ModUtil.Metatables.Locals.Stacked )
 end
 
 -- Entangled Data Structures
@@ -1681,21 +1747,21 @@ ModUtil.Metatables.Entangled.Union = {
 }
 
 ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( ... )
-	local keys, members = { }, ToLookup{ ... }
+	local keys, members = { }, toLookup{ ... }
 	local union = { Reserve = { }, Keys = keys, Members = members }
 	for t in pairs( members ) do
 		for k in pairs( t ) do
 			keys[ k ] = true
 		end
 	end
-	return ModUtil.ObjectDataProxy( union, ModUtil.Metatables.Entangled.Union )
+	return ModUtil.Proxy( union, ModUtil.Metatables.Entangled.Union )
 end )
 
 function ModUtil.Entangled.Union.Add( union, ... )
 	local members = getObjectData( union, "Members" )
 	local keys = getObjectData( union, "Keys" )
 	local reserve = getObjectData( union, "Reserve" )
-	for t in pairs( ToLookup{ ... } ) do
+	for t in pairs( toLookup{ ... } ) do
 		members[ t ] = true
 		for k in pairs( t ) do
 			keys[ k ] = true
@@ -1707,7 +1773,7 @@ end
 function ModUtil.Entangled.Union.Sub( union, ... )
 	local members = getObjectData( union, "Members" )
 	local keys = getObjectData( union, "Keys" )
-	for t in pairs( ToLookup{ ... } ) do
+	for t in pairs( toLookup{ ... } ) do
 		members[ t ] = nil
 	end
 	for k in pairs( keys ) do
@@ -1883,16 +1949,16 @@ ModUtil.Metatables.Entangled.Map = {
 ModUtil.Entangled.Map = ModUtil.Callable.Set( { Unique = { } }, function( )
 	local data, preImage = { }, { }
 	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
-	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Data )
-	preImage = ModUtil.ObjectDataProxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
+	data = ModUtil.Proxy( data, ModUtil.Metatables.Entangled.Map.Data )
+	preImage = ModUtil.Proxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
 	return { Data = data, Index = preImage, PreImage = preImage }
 end )
 
 ModUtil.Entangled.Map.Unique = ModUtil.Callable.Set( { }, function( )
 	local data, inverse = { }, { }
 	data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
-	data = ModUtil.ObjectDataProxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
-	inverse = ModUtil.ObjectDataProxy( inverse, ModUtil.Metatables.Entangled.Map.Unique.Inverse )
+	data = ModUtil.Proxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
+	inverse = ModUtil.Proxy( inverse, ModUtil.Metatables.Entangled.Map.Unique.Inverse )
 	return { Data = data, Index = inverse, Inverse = inverse }
 end )
 
@@ -1922,7 +1988,7 @@ ModUtil.Metatables.Context = {
 		contextInfo.args = table.pack( ... )
 		contextInfo.arg = arg
 		contextInfo.data = { }
-		contextInfo.params = table.pack( getObjectData( self, "callContextProcessor" )( contextInfo ) )
+		contextInfo.params = table.pack( getObjectData( self, "prepContext" )( contextInfo ) )
 		
 		threadEnvironments[ thread ] = contextInfo.env
 		contextInfo.response = table.pack( contextInfo.wrap( table.unpack( contextInfo.params ) ) )
@@ -1940,8 +2006,8 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-ModUtil.Context = ModUtil.Callable.Set( { }, function( callContextProcessor, postCall )
-	return ModUtil.ObjectDataProxy( { callContextProcessor = callContextProcessor, postCall = postCall }, ModUtil.Metatables.Context )
+ModUtil.Context = ModUtil.Callable.Set( { }, function( prepContext, postCall )
+	return ModUtil.Proxy( { prepContext = prepContext, postCall = postCall }, ModUtil.Metatables.Context )
 end )
 
 ModUtil.Context.Data = ModUtil.Context( function( info )
@@ -1963,7 +2029,6 @@ end )
 ModUtil.Context.Env = ModUtil.Context( function( info )
 	local func = info.arg
 	local fenv = ModUtil.Node.Data.Env.New( func )
-	ModUtil.Node.Data.Env.Set( func, fenv )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return fenv[ key ] or info.penv[ key ] end,
 		__newindex = fenv
@@ -1985,7 +2050,12 @@ ModUtil.Context.Call = ModUtil.Context(
 	end
 )
 
-ModUtil.Context.StaticWrap = ModUtil.Context(
+ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( func, context, mod )
+	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
+end )
+
+
+ModUtil.Context.Wrap.Static = ModUtil.Context(
 	function( info )
 		info.env = setmetatable( { }, { __index = info.penv } )
 	end,
@@ -2000,10 +2070,6 @@ ModUtil.Context.StaticWrap = ModUtil.Context(
 		end, info.args[1] )
 	end
 )
-
-function ModUtil.Context.Wrap( func, context, mod )
-	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
-end
 
 -- Special Traversal Nodes
 
@@ -2024,13 +2090,41 @@ end
 
 local fenvData = setmetatable( { }, { __mode = "k" } )
 
+ModUtil.Metatables.Env = {
+	__index = function( self, key )
+		local val
+		local env = threadEnvironments[ coroutine.running( ) ]
+		if env then
+			val = env[ key ]
+		end
+		if val ~= nil then return val end
+		val = getObjectData( self, "fenv" )[ key ]
+		if val ~= nil then return val end
+		return _G[ key ]
+	end,
+	__newindex = function( self, key, val )
+		local env = threadEnvironments[ coroutine.running( ) ]
+		if env and env[ key ] ~= nil then
+			env[ key ] = val
+			return
+		end
+		local fenv = getObjectData( self, "fenv" )
+		if fenv[ key ] ~= nil then
+			fenv[ key ] = val
+			return
+		end
+		_G[ key ] = val
+	end
+}
+
 ModUtil.Node.Data.Env = {
 	New = function( func )
-		local fenv = _G.getfenv( func )
-		if not fenv then
+		local fenv = getfenv( func )
+		if not fenv or fenv == __G then
 			fenv = { }
 			fenvData[ func ] = fenv
 		end
+		setfenv( func, ModUtil.Proxy( { fenv = fenv }, ModUtil.Metatables.Env ) )
 		return fenv
 	end,
 	Get = function( func )
@@ -2044,39 +2138,12 @@ ModUtil.Node.Data.Env = {
 		return fenv
 	end,
 	Set = function( func, fenv )
-
 		fenvData[ func ] = fenv
-
-		setfenv( func, setmetatable( { }, {
-			__index = function( _, key )
-				local val
-				local env = threadEnvironments[ coroutine.running( ) ]
-				if env then
-					val = env[ key ]
-				end
-				if val ~= nil then return val end
-				val = fenv[ key ]
-				if val ~= nil then return val end
-				return _G[ key ]
-			end,
-			__newindex = function( _, key, val )
-				local env = threadEnvironments[ coroutine.running( ) ]
-				if env and env[ key ] ~= nil then
-					env[ key ] = val
-					return
-				end
-				if fenv[ key ] ~= nil then
-					fenv[ key ] = val
-					return
-				end
-				_G[ key ] = val
-			end
-		} ) )
-
+		setfenv( func, ModUtil.Proxy( { fenv = fenv }, ModUtil.Metatables.Env ) )
 	end
 }
 
-ModUtil.Node.Data.Metatable = {
+ModUtil.Node.Data.Meta = {
 	New = function( obj )
 		local meta = getmetatable( obj )
 		if meta == nil then
@@ -2224,7 +2291,7 @@ function ModUtil.ReferTable( obtainer, ... )
 	local obtain = function( )
 		return obtainer( table.unpack( args ) )
 	end
-	return ModUtil.ObjectDataProxy( { obtain = obtain }, ModUtil.Metatables.ReferTable )
+	return ModUtil.Proxy( { obtain = obtain }, ModUtil.Metatables.ReferTable )
 end
 
 -- Internal access
@@ -2237,7 +2304,7 @@ do
 		objectData, newObjectData, getObjectData,
 		decorators, overrides,
 		threadEnvironments, fenvData, getEnv, replaceGlobalEnvironment,
-		pusherror, getname, ToLookup, wrapDecorator,
+		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
 	end )
