@@ -1,30 +1,56 @@
 
-ModUtil.RegisterMod( "Hades", ModUtil )
+ModUtil.Mod.Register( "Hades", ModUtil )
 
-ModUtil.MapSetTable( ModUtil.Hades, {
+-- Global Interception
+
+--[[
+	Intercept global keys which are objects to return themselves
+	This way we can use other namespaces for UI etc
+--]]
+
+local callableCandidateTypes = ModUtil.Internal.callableCandidateTypes
+
+local function isPath( path )
+	return path:find("[.]") 
+		and not path:find("[.][.]+")
+		and not path:find("^[.]")
+		and not path:find("[.]$")
+end
+
+local function routeKey( self, key )
+	local t = type( key )
+	if t == "string" and isPath( key ) then
+		return ModUtil.Path.Get( key )
+	end
+	if callableCandidateTypes[ t ] then
+		return key
+	end
+end
+
+do 
+
+	local meta = getmetatable( _ENV ) or { }
+	if meta.__index then
+		meta.__index = ModUtil.Wrap( meta.__index, function( base, self, key )
+			local value = base( self, key )
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end, ModUtil.Hades )
+	else
+		meta.__index = routeKey
+	end
+
+	setmetatable( _ENV, meta )
+
+end
+---
+
+ModUtil.Table.Merge( ModUtil.Hades, {
 	PrintStackHeight = 10,
 	PrintStackCapacity = 80
 } )
 
 ModUtil.Anchors.PrintOverhead = {}
-
--- Screen Handling
-
-OnAnyLoad{ function() 
-	if ModUtil.Hades.UnfreezeLoop then return end
-	ModUtil.Hades.UnfreezeLoop = true
-	thread( function()
-		while ModUtil.Hades.UnfreezeLoop do
-			wait(15)
-			if ModUtil.SafeGet(CurrentRun,{'Hero','FreezeInputKeys'}) then
-				if (not AreScreensActive()) and (not IsInputAllowed({})) then
-					UnfreezePlayerUnit()
-					DisableShopGamepadCursor()
-				end
-			end
-		end
-	end)
-end}
 
 -- Menu Handling
 
@@ -305,7 +331,7 @@ end
 
 function ModUtil.Hades.PrintStackChunks( text, linespan, ... )
 	if not linespan then linespan = 90 end
-	for _,s in ipairs( ModUtil.ChunkText( text, linespan,ModUtil.Hades.PrintStackCapacity ) ) do
+	for _,s in ipairs( ModUtil.String.Chunk( text, linespan, ModUtil.Hades.PrintStackCapacity ) ) do
 		ModUtil.Hades.PrintStack( s, ... )
 	end
 end
@@ -349,13 +375,13 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	Attach({ Id = components.Icon.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = -50})
 	SetAnimation({ Name = icon, DestinationId = components.Icon.Id, Scale = iconScale })
 
-	ModUtil.NewTable(ModUtil.Anchors.Menu[group], "Funcs")
+	ModUtil.Nodes.New(ModUtil.Anchors.Menu[group], "Funcs")
 	ModUtil.Anchors.Menu[group].Funcs={
 		Yes = function(screen, button)
 				if not yesFunc(screen,button) then
 					ModUtil.Hades.CloseMenuYesNo(screen,button)
 				end
-			end, 
+			end,
 		No = function(screen, button)
 				if not noFunc(screen,button) then
 					ModUtil.Hades.CloseMenuYesNo(screen,button)
@@ -365,11 +391,11 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 
 	components.CloseButton = CreateScreenComponent({ Name = "ButtonClose", Scale = 0.7, Group = group })
 	Attach({ Id = components.CloseButton.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = ScreenCenterY - 315 })
-	components.CloseButton.OnPressedFunctionName = "ModUtil.Hades.CloseMenuYesNo"
+	components.CloseButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "ModUtil.Hades.CloseMenuYesNo" )
 	components.CloseButton.ControlHotkey = "Cancel"
 
 	components.YesButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.YesButton.OnPressedFunctionName = "ModUtil.Anchors.Menu."..group..".Funcs.Yes"
+	components.YesButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "ModUtil.Anchors.Menu."..group..".Funcs.Yes" )
 	SetScaleX({Id = components.YesButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.YesButton.Id, Fraction = 1.15})
 	Attach({ Id = components.YesButton.Id, DestinationId = components.Background.Id, OffsetX = -150, OffsetY = 75 })
@@ -379,7 +405,7 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	})
 	
 	components.NoButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.NoButton.OnPressedFunctionName = "ModUtil.Anchors.Menu."..group..".Funcs.No"
+	components.NoButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "ModUtil.Anchors.Menu."..group..".Funcs.No" )
 	SetScaleX({Id = components.NoButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.NoButton.Id, Fraction = 1.15})
 	Attach({ Id = components.NoButton.Id, DestinationId = components.Background.Id, OffsetX = 150, OffsetY = 75 })
@@ -401,4 +427,13 @@ end
 function ModUtil.Hades.RandomElement( tableArg, rng )
 	local Collapsed = CollapseTable( tableArg )
 	return Collapsed[RandomInt( 1, #Collapsed, rng )]
+end
+
+-- Internal Access
+
+do
+	local ups = ModUtil.UpValues( function( )
+		return callableCandidateTypes, isPath, routeKey
+	end )
+	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end
