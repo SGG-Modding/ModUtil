@@ -93,6 +93,7 @@ local function modDataPlain( obj, key, value, level )
 			for k, v in pairs( value ) do
 				modDataPlain( value, k, v, level )
 			end
+			obj[ key ] = value
 		else
 			error( "saved data tables cannot have values of type "..t..".", level )
 		end
