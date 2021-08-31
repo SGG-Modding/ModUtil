@@ -261,7 +261,6 @@ local function replaceGlobalEnvironment( )
 		if v == _G then reg[ i ] = __G end
 	end
 	ModUtil.Identifiers.Inverse._ENV = __G
-	rawset( __G, "_DEBUG_G", _G )
 end
 
 -- Managed Object Data
@@ -353,9 +352,7 @@ end
 
 function ModUtil.Callable.Set( o, f )
 	local m = getmetatable( o ) or { }
-	function m.__call( _, ... )
-		return f( ... )
-	end
+	m.__call = f
 	return setmetatable( o, m ), f
 end
 
@@ -382,17 +379,17 @@ function ModUtil.Callable.Func.Map( ... )
 	return f
 end
 
-ModUtil.Callable.Set( ModUtil.Callable, function ( obj )
+ModUtil.Callable.Set( ModUtil.Callable, function ( _, obj )
 	return ModUtil.Callable.Func.Get( obj ) ~= nil
 end )
 
 -- Data Misc
 
-function ModUtil.Args.Map( mapFunc, ... )
+function ModUtil.Args.Map( map, ... )
 	local out = { }
 	local args = table.pack( ... )
 	for i = 1, args.n do
-		table.insert( out, mapFunc( args[ i ] ) )
+		 out[ i ] = map( args[ i ] )
 	end
 	return table.unpack( out )
 end
@@ -407,17 +404,17 @@ function ModUtil.Args.Drop( n, ... )
 	return table.unpack( args, n + 1, args.n )
 end
 
-function ModUtil.Table.Map( tableArg, mapFunc )
+function ModUtil.Table.Map( tbl, map )
 	local out = { }
-	for k, v in pairs( tableArg ) do
-		out[ k ] = mapFunc( v )
+	for k, v in pairs( tbl ) do
+		out[ k ] = map( v )
 	end
 	return out
 end
 
-function ModUtil.Table.Mutate( tableArg, mapFunc )
-	for k, v in pairs( tableArg ) do
-		tableArg[ k ] = mapFunc( v )
+function ModUtil.Table.Mutate( tbl, map )
+	for k, v in pairs( tbl ) do
+		tbl[ k ] = map( v )
 	end
 end
 
@@ -445,7 +442,7 @@ function ModUtil.Table.UnKeyed( tableArg )
 end
 
 function ModUtil.String.Join( sep, ... )
-	local out = {}
+	local out = { }
 	local args = table.pack( ... )
 	out[ 1 ] = args[ 1 ]
 	for i = 2, args.n do
@@ -478,8 +475,8 @@ end
 
 -- String Representations
 
-ModUtil.ToString = ModUtil.Callable.Set( { }, function( o )
-	local identifier = ModUtil.Identifiers.Data[ o ]
+ModUtil.ToString = ModUtil.Callable.Set( { }, function( _, o )
+	local identifier = o ~= nil and ModUtil.Identifiers.Data[ o ]
 	identifier = identifier and identifier .. ":" or ""
 	return identifier .. ModUtil.ToString.Static( o )
 end )
@@ -550,7 +547,7 @@ function ModUtil.ToString.Shallow( o )
 	end
 end
 
-ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( o, seen )
+ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, o, seen )
 	seen = seen or { }
 	if type( o ) == "table" and not seen[ o ] then
 		seen[ o ] = true
@@ -623,7 +620,7 @@ end
 
 -- Print
 
-ModUtil.Print = ModUtil.Callable.Set( { }, function ( ... )
+ModUtil.Print = ModUtil.Callable.Set( { }, function ( _, ... )
 	print( ... )
 	if DebugPrint then ModUtil.Print.Debug( ... ) end
 	if io then
@@ -777,7 +774,7 @@ function ModUtil.Array.Join( a, ... )
 	return ModUtil.Array.Join( c, ModUtil.Args.Drop( 1, ... ) )
 end
 
-ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( t )
+ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( _, t )
 	c = { }
 	for k, v in pairs( t ) do
 		c[ k ] = v
@@ -1247,7 +1244,7 @@ ModUtil.Metatables.UpValues = {
 	end
 }
 
-ModUtil.UpValues = ModUtil.Callable.Set( { }, function( func )
+ModUtil.UpValues = ModUtil.Callable.Set( { }, function( _, func )
 	if type( func ) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
@@ -1526,7 +1523,7 @@ ModUtil.Metatables.Locals = {
 	end
 }
 
-ModUtil.Locals = ModUtil.Callable.Set( { }, function( level )
+ModUtil.Locals = ModUtil.Callable.Set( { }, function( _, level )
 	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
 end )
 
@@ -1759,7 +1756,7 @@ ModUtil.Metatables.Entangled.Union = {
 
 }
 
-ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( ... )
+ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( _, ... )
 	local keys, members = { }, toLookup{ ... }
 	local union = { Reserve = { }, Keys = keys, Members = members }
 	for t in pairs( members ) do
@@ -2019,7 +2016,7 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-ModUtil.Context = ModUtil.Callable.Set( { }, function( prepContext, postCall )
+ModUtil.Context = ModUtil.Callable.Set( { }, function( _, prepContext, postCall )
 	return ModUtil.Proxy( { prepContext = prepContext, postCall = postCall }, ModUtil.Metatables.Context )
 end )
 
@@ -2053,7 +2050,7 @@ ModUtil.Context.Call = ModUtil.Context(
 	end
 )
 
-ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( func, context, mod )
+ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( _, func, context, mod )
 	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
 end )
 
@@ -2114,12 +2111,10 @@ ModUtil.Node.Data.Meta = {
 
 ModUtil.Node.Data.Call = {
 	New = function( obj )
-		local _, call = ModUtil.Callable.Get( obj )
-		return call or error( "node new rejected, new call nodes are not meaningfully mutable.", 2 )
+		return ModUtil.Callable.Func.Get( obj ) or error( "node new rejected, new call nodes are not meaningfully mutable.", 2 )
 	end,
 	Get = function( obj )
-		local _, call = ModUtil.Callable.Get( obj )
-		return call
+		return ModUtil.Callable.Func.Get( obj )
 	end,
 	Set = function( obj, value )
 		ModUtil.Callable.Set( ModUtil.Callable.Get( obj ), value )
@@ -2155,17 +2150,20 @@ ModUtil.Mods.Data.ModUtil = ModUtil
 
 -- Function Wrapping, Decoration, Overriding, Referral
 
-local decorators = { }
-setmetatable( decorators, { __mode = "k" } )
-local overrides = { }
-setmetatable( overrides, { __mode = "k" } )
+local decorators = setmetatable( { }, { __mode = "k" } )
+local overrides = setmetatable( { }, { __mode = "k" } )
 
 local function wrapDecorator( wrap )
-	return function( base ) return function( ... ) return wrap( base, ... ) end end
+	return function( base )
+		return function( ... ) return wrap( base, ... ) end
+	end
 end
 
-ModUtil.Decorate = ModUtil.Callable.Set( { }, function( base, func, mod )
+ModUtil.Decorate = ModUtil.Callable.Set( { }, function( _, base, func, mod )
 	local out = func( base )
+	if decorators[ out ] then
+		error( "decorator produced duplicate reference", 2 )
+	end
 	decorators[ out ] = { Base = base, Func = func, Mod = mod }
 	return out
 end )
@@ -2199,6 +2197,9 @@ function ModUtil.Decorate.Refresh( obj )
 end
 
 function ModUtil.Override( base, value, mod )
+	if overrides[ value ] then
+		error( "cannot override with existing reference", 2 )
+	end
 	local node, parent = base
 	while decorators[ node ] do
 		parent = node

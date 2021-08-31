@@ -3,6 +3,13 @@ ModUtil.Mod.Register( "Hades", ModUtil )
 
 -- Global Interception
 
+--[[
+	Intercept global keys which are objects to return themselves
+	This way we can use other namespaces for UI etc
+--]]
+
+local callableCandidateTypes = ModUtil.Internal.callableCandidateTypes
+
 local function isPath( path )
 	return path:find("[.]") 
 		and not path:find("[.][.]+")
@@ -10,24 +17,29 @@ local function isPath( path )
 		and not path:find("[.]$")
 end
 
---[[
-	Intercept global keys which are objects to return themselves
-	This way we can use other namespaces for UI etc
---]]
+local function routeKey( self, key )
+	local t = type( key )
+	if t == "string" and isPath( key ) then
+		return ModUtil.Path.Get( key )
+	end
+	if callableCandidateTypes[ t ] then
+		return key
+	end
+end
+
 do 
 
-	local meta = getmetatable( _ENV ) or { __index = rawget }
-	ModUtil.IndexArray.Wrap( meta, { "__index" }, function( baseFunc, self, key )
-		local value = baseFunc( self, key )
-		if value ~= nil then return value end
-		local t = type( key )
-		if t == "string" and isPath( key ) then
-			return ModUtil.Path.Get( key )
-		end
-		if ModUtil.Internal.callableCandidateTypes[ t ] then
-			return key
-		end
-	end, ModUtil.Hades )
+	local meta = getmetatable( _ENV ) or { }
+	if meta.__index then
+		meta.__index = ModUtil.Wrap( meta.__index, function( base, self, key )
+			local value = base( self, key )
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end, ModUtil.Hades )
+	else
+		meta.__index = routeKey
+	end
+
 	setmetatable( _ENV, meta )
 
 end
@@ -415,4 +427,13 @@ end
 function ModUtil.Hades.RandomElement( tableArg, rng )
 	local Collapsed = CollapseTable( tableArg )
 	return Collapsed[RandomInt( 1, #Collapsed, rng )]
+end
+
+-- Internal Access
+
+do
+	local ups = ModUtil.UpValues( function( )
+		return callableCandidateTypes, isPath, routeKey
+	end )
+	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end

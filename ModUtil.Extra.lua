@@ -6,7 +6,7 @@ function ModUtil.IndexArray.Wrap( baseTable, indexArray, wrap, mod )
 	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
 end
 
-ModUtil.IndexArray.Context.Wrap = ModUtil.Callable.Set( { }, function( baseTable, indexArray, context, mod )
+ModUtil.IndexArray.Context.Wrap = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, context, mod )
 	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
 end )
 
@@ -14,7 +14,7 @@ function ModUtil.IndexArray.Context.Wrap.Static( baseTable, indexArray, context,
 	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap.Static, context, mod )
 end
 
-ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( baseTable, indexArray, func, mod )
+ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, func, mod )
 	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
 end )
 
@@ -62,7 +62,7 @@ function ModUtil.Path.Wrap( path, wrap, mod )
 	return ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
 end
 
-ModUtil.Path.Context.Wrap = ModUtil.Callable.Set( { }, function( path, context, mod )
+ModUtil.Path.Context.Wrap = ModUtil.Callable.Set( { }, function( _, path, context, mod )
 	return ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
 end )
 
@@ -70,7 +70,7 @@ function ModUtil.Path.Context.Wrap.Static( path, context, mod )
 	return ModUtil.Path.Map( path, ModUtil.Context.Wrap.Static, context, mod )
 end
 
-ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( path, func, mod )
+ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( _, path, func, mod )
 	return ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
 end )
 
