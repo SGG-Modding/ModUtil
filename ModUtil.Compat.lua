@@ -7,8 +7,6 @@ setmetatable( ModUtil, {
 
 ModUtil.Compat.RegisterMod = ModUtil.Mod.Register
 
-ModUtil.Compat.ForceClosed = ModUtil.Internal.ForceClosed
-
 ModUtil.Compat.ValueString = ModUtil.ToString.Value
 
 ModUtil.Compat.KeyString = ModUtil.ToString.Key
@@ -72,8 +70,6 @@ ModUtil.Compat.WrapBaseFunction = ModUtil.Path.Wrap
 ModUtil.Compat.RewrapBaseFunction = ModUtil.Path.Decorate.Refresh
 
 ModUtil.Compat.UnwrapBaseFunction = ModUtil.Path.Decorate.Pop
-
-ModUtil.Compat.Override = ModUtil.IndexArray.Override
 
 ModUtil.Compat.BaseOverride = ModUtil.Path.Override
 
