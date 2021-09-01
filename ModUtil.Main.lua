@@ -16,8 +16,8 @@ local ModUtil, pairs, ipairs, table, SaveIgnores, _G
 
 SaveIgnores[ "ModUtil" ] = true
 
-rawset( _ENV, "_DEBUG_G", _G )
-SaveIgnores[ "_DEBUG_G" ] = true
+rawset( _ENV, "*G", _G )
+SaveIgnores[ "*G" ] = true
 
 --[[
 	Create a namespace that can be used for the mod's functions
