@@ -3,21 +3,55 @@
     Components of ModUtil that depend on loading after Main.lua
 ]]
 
-ModUtil.Anchors = {
-	Menu = { },
-	CloseFuncs = { }
-}
-
---- bind to locals to minimise environment recursion and improve speed
-local ModUtil, pairs, ipairs, table, SaveIgnores, _G
-    = ModUtil, pairs, ipairs, table, SaveIgnores, ModUtil.Internal._G
-
 -- Management
 
 SaveIgnores[ "ModUtil" ] = true
 
-rawset( _ENV, "GLOBALS", _G )
+rawset( _ENV, "GLOBALS", ModUtil.Internal._G )
 SaveIgnores[ "GLOBALS" ] = true
+
+-- Global Interception
+
+--[[
+	Intercept global keys which are objects to return themselves
+	This way we can use other namespaces for UI etc
+--]]
+
+local callableCandidateTypes = ModUtil.Internal.callableCandidateTypes
+
+local function isPath( path )
+	return path:find("[.]") 
+		and not path:find("[.][.]+")
+		and not path:find("^[.]")
+		and not path:find("[.]$")
+end
+
+local function routeKey( self, key )
+	local t = type( key )
+	if t == "string" and isPath( key ) then
+		return ModUtil.Path.Get( key )
+	end
+	if callableCandidateTypes[ t ] then
+		return key
+	end
+end
+
+do 
+
+	local meta = getmetatable( _ENV ) or { }
+	if meta.__index then
+		meta.__index = ModUtil.Wrap( meta.__index, function( base, self, key )
+			local value = base( self, key )
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end, ModUtil )
+	else
+		meta.__index = routeKey
+	end
+
+	setmetatable( _ENV, meta )
+
+end
 
 --[[
 	Create a namespace that can be used for the mod's functions
@@ -179,20 +213,6 @@ ModUtil.Mod.Data = setmetatable( { }, {
 	end	
 } )
 
---[[
-	Tell each screen anchor that they have been forced closed by the game
---]]
-local function forceClosed( triggerArgs )
-	for _, v in pairs( ModUtil.Anchors.CloseFuncs ) do
-		v( nil, nil, triggerArgs )
-	end
-	ModUtil.Anchors.CloseFuncs = { }
-	ModUtil.Anchors.Menu = { }
-end
-OnAnyLoad{ function( triggerArgs ) forceClosed( triggerArgs ) end }
-
-local funcsToLoad = { }
-
 local function loadFuncs( triggerArgs )
 	for _, v in pairs( funcsToLoad ) do
 		v( triggerArgs )
@@ -200,6 +220,7 @@ local function loadFuncs( triggerArgs )
 	funcsToLoad = { }
 end
 OnAnyLoad{ function( triggerArgs ) loadFuncs( triggerArgs ) end }
+
 
 --[[
 	Run the provided function once on the next in-game load.
@@ -227,7 +248,7 @@ end
 
 do
 	local ups = ModUtil.UpValues( function( )
-		return _G, forceClosed, funcsToLoad, loadFuncs,
+		return _G, funcsToLoad, loadFuncs, isPath, routeKey, callableCandidateTypes,
 			objectData, passByValueTypes, modDataKey, modDataProxy, modDataPlain
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )

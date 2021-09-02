@@ -1,85 +1,54 @@
 
 ModUtil.Mod.Register( "Hades", ModUtil )
 
--- Global Interception
-
---[[
-	Intercept global keys which are objects to return themselves
-	This way we can use other namespaces for UI etc
---]]
-
-local callableCandidateTypes = ModUtil.Internal.callableCandidateTypes
-
-local function isPath( path )
-	return path:find("[.]") 
-		and not path:find("[.][.]+")
-		and not path:find("^[.]")
-		and not path:find("[.]$")
-end
-
-local function routeKey( self, key )
-	local t = type( key )
-	if t == "string" and isPath( key ) then
-		return ModUtil.Path.Get( key )
-	end
-	if callableCandidateTypes[ t ] then
-		return key
-	end
-end
-
-do 
-
-	local meta = getmetatable( _ENV ) or { }
-	if meta.__index then
-		meta.__index = ModUtil.Wrap( meta.__index, function( base, self, key )
-			local value = base( self, key )
-			if value ~= nil then return value end
-			return routeKey( self, key )
-		end, ModUtil.Hades )
-	else
-		meta.__index = routeKey
-	end
-
-	setmetatable( _ENV, meta )
-
-end
----
-
 ModUtil.Table.Merge( ModUtil.Hades, {
 	PrintStackHeight = 10,
 	PrintStackCapacity = 80
 } )
 
-ModUtil.Anchors.PrintOverhead = {}
-
 -- Menu Handling
+
+local menuScreens = { }
+local closeFuncs = { }
+
+--[[
+	Tell each screen anchor that they have been forced closed by the game
+--]]
+local function forceClosed( triggerArgs )
+	for _, v in pairs( closeFuncs ) do
+		v( nil, nil, triggerArgs )
+	end
+	closeFuncs = { }
+	menuScreens = { }
+end
+OnAnyLoad{ function( triggerArgs ) forceClosed( triggerArgs ) end }
 
 function ModUtil.Hades.CloseMenu( screen, button )
 	CloseScreen(GetAllIds(screen.Components), 0.1)
-	ModUtil.Anchors.Menu[screen.Name] = nil
+	menuScreens[screen.Name] = nil
 	screen.KeepOpen = false
 	OnScreenClosed({ Flag = screen.Name })
-	if TableLength(ModUtil.Anchors.Menu) == 0 then
+	if TableLength(menuScreens) == 0 then
 		SetConfigOption({ Name = "FreeFormSelectWrapY", Value = false })
 		SetConfigOption({ Name = "UseOcclusion", Value = true })
 		UnfreezePlayerUnit()
 		DisableShopGamepadCursor()
 	end
-	if ModUtil.Anchors.CloseFuncs[screen.Name] then
-		ModUtil.Anchors.CloseFuncs[screen.Name]( screen, button )
-		ModUtil.Anchors.CloseFuncs[screen.Name]=nil
+	if closeFuncs[screen.Name] then
+		closeFuncs[screen.Name]( screen, button )
+		closeFuncs[screen.Name]=nil
 	end
 end
 
 function ModUtil.Hades.OpenMenu( group, closeFunc, openFunc )
-	if ModUtil.Anchors.Menu[group] then
-		ModUtil.Hades.CloseMenu(ModUtil.Anchors.Menu[group])
+	if menuScreens[group] then
+		ModUtil.Hades.CloseMenu(menuScreens[group])
 	end
-	if closeFunc then ModUtil.Anchors.CloseFuncs[group]=closeFunc end
+	if closeFunc then closeFuncs[group]=closeFunc end
 	
 	local screen = { Name = group, Components = {} }
 	local components = screen.Components
-	ModUtil.Anchors.Menu[group] = screen
+	menuScreens[group] = screen
 	
 	OnScreenOpened({ Flag = screen.Name, PersistCombatUI = true })
 	
@@ -106,7 +75,7 @@ function ModUtil.Hades.UndimMenu( screen )
 end
 
 function ModUtil.Hades.PostOpenMenu( screen )
-	if TableLength(ModUtil.Anchors.Menu) == 1 then
+	if TableLength(menuScreens) == 1 then
 		SetConfigOption({ Name = "FreeFormSelectWrapY", Value = true })
 		SetConfigOption({ Name = "UseOcclusion", Value = false })
 		FreezePlayerUnit()
@@ -118,10 +87,12 @@ function ModUtil.Hades.PostOpenMenu( screen )
 end
 
 function ModUtil.Hades.GetMenuScreen( group )
-	return ModUtil.Anchors.Menu[group]
+	return menuScreens[group]
 end
 
 -- Debug Printing
+
+local printDisplay = nil
 
 function ModUtil.Hades.PrintDisplay( text , delay, color )
 	if type(text) ~= "string" then
@@ -134,20 +105,22 @@ function ModUtil.Hades.PrintDisplay( text , delay, color )
 	if delay == nil then
 		delay = 5
 	end
-	if ModUtil.Anchors.PrintDisplay then
-		Destroy({Ids = {ModUtil.Anchors.PrintDisplay.Id}})
+	if printDisplay then
+		Destroy({Ids = {printDisplay.Id}})
 	end
-	ModUtil.Anchors.PrintDisplay = CreateScreenComponent({Name = "BlankObstacle", Group = "PrintDisplay", X = ScreenCenterX, Y = 40 })
-	CreateTextBox({ Id = ModUtil.Anchors.PrintDisplay.Id, Text = text, FontSize = 22, Color = color, Font = "UbuntuMonoBold"})
+	printDisplay = CreateScreenComponent({Name = "BlankObstacle", Group = "PrintDisplay", X = ScreenCenterX, Y = 40 })
+	CreateTextBox({ Id = printDisplay.Id, Text = text, FontSize = 22, Color = color, Font = "UbuntuMonoBold"})
 	
 	if delay > 0 then
 		thread(function()
 			wait(delay)
-			Destroy({Ids = {ModUtil.Anchors.PrintDisplay.Id}})
-			ModUtil.Anchors.PrintDisplay = nil
+			Destroy({Ids = {printDisplay.Id}})
+			printDisplay = nil
 		end)
 	end
 end
+
+local printOverhead = { }
 
 function ModUtil.Hades.PrintOverhead(text, delay, color, dest)
 	if type(text) ~= "string" then
@@ -163,35 +136,37 @@ function ModUtil.Hades.PrintOverhead(text, delay, color, dest)
 	if delay == nil then
 		delay = 5
 	end
-	Destroy({Ids = {ModUtil.Anchors.PrintOverhead[dest]}})
+	Destroy({Ids = {printOverhead[dest]}})
 	local id = SpawnObstacle({ Name = "BlankObstacle", Group = "PrintOverhead", DestinationId = dest })
-	ModUtil.Anchors.PrintOverhead[dest] = id
+	printOverhead[dest] = id
 	Attach({ Id = id, DestinationId = dest })
 	CreateTextBox({ Id = id, Text = text, FontSize = 32, OffsetX = 0, OffsetY = -150, Color = color, Font = "AlegreyaSansSCBold", Justification = "Center" })
 	if delay > 0 then
 		thread(function()
 			wait(delay)
-			if ModUtil.Anchors.PrintOverhead[dest] then
+			if printOverhead[dest] then
 				Destroy({Ids = {id}})
-				ModUtil.Anchors.PrintOverhead[dest] = nil
+				printOverhead[dest] = nil
 			end
 		end)
 	end
 end
 
-local function ClosePrintStack()
-	if ModUtil.Anchors.PrintStack then
-		ModUtil.Anchors.PrintStack.CullEnabled = false
+local printStack = nil
+
+local function closePrintStack()
+	if ModUtil.Hades.Anchors.PrintStack then
+		ModUtil.Hades.Anchors.PrintStack.CullEnabled = false
 		PlaySound({ Name = "/SFX/Menu Sounds/GeneralWhooshMENU" })
-		ModUtil.Anchors.PrintStack.KeepOpen = false
+		ModUtil.Hades.Anchors.PrintStack.KeepOpen = false
 		
-		CloseScreen(GetAllIds(ModUtil.Anchors.PrintStack.Components),0)
-		ModUtil.Anchors.CloseFuncs["PrintStack"] = nil
-		ModUtil.Anchors.PrintStack = nil
+		CloseScreen(GetAllIds(ModUtil.Hades.Anchors.PrintStack.Components),0)
+		closeFuncs["PrintStack"] = nil
+		ModUtil.Hades.Anchors.PrintStack = nil
 	end
 end
 
-local function OrderPrintStack(screen,components)
+local function orderPrintStack(screen,components)
 	
 	if screen.CullPrintStack then 
 		local v = screen.TextStack[1]
@@ -233,7 +208,7 @@ local function OrderPrintStack(screen,components)
 		v.tid = i
 	end
 	if #screen.TextStack == 0 then
-		return ClosePrintStack()
+		return closePrintStack()
 	end
 	
 	local Ymul = screen.StackHeight+1
@@ -275,12 +250,12 @@ function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, so
 	text = " "..text.." "
 	
 	local first = false
-	if not ModUtil.Anchors.PrintStack then
+	if not ModUtil.Hades.Anchors.PrintStack then
 		first = true
-		ModUtil.Anchors.PrintStack = { Components = {} }
-		ModUtil.Anchors.CloseFuncs["PrintStack"] = ClosePrintStack
+		ModUtil.Hades.Anchors.PrintStack = { Components = {} }
+		closeFuncs["PrintStack"] = closePrintStack
 	end
-	local screen = ModUtil.Anchors.PrintStack
+	local screen = ModUtil.Hades.Anchors.PrintStack
 	local components = screen.Components
 	
 	if first then 
@@ -303,7 +278,7 @@ function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, so
 				wait(0.5)
 				if screen.CullEnabled then
 					if screen.CullPrintStack then
-						OrderPrintStack(screen,components)
+						orderPrintStack(screen,components)
 					end
 				end
 			end
@@ -323,7 +298,7 @@ function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, so
 	
 	PlaySound({ Name = sound })
 	
-	OrderPrintStack(screen,components)
+	orderPrintStack(screen,components)
 	
 	screen.CullEnabled = true
 	
@@ -375,8 +350,8 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	Attach({ Id = components.Icon.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = -50})
 	SetAnimation({ Name = icon, DestinationId = components.Icon.Id, Scale = iconScale })
 
-	ModUtil.Nodes.New(ModUtil.Anchors.Menu[group], "Funcs")
-	ModUtil.Anchors.Menu[group].Funcs={
+	ModUtil.Nodes.New(menuScreens[group], "Funcs")
+	menuScreens[group].Funcs={
 		Yes = function(screen, button)
 				if not yesFunc(screen,button) then
 					ModUtil.Hades.CloseMenuYesNo(screen,button)
@@ -395,7 +370,7 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	components.CloseButton.ControlHotkey = "Cancel"
 
 	components.YesButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.YesButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "ModUtil.Anchors.Menu."..group..".Funcs.Yes" )
+	components.YesButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "menuScreens."..group..".Funcs.Yes" )
 	SetScaleX({Id = components.YesButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.YesButton.Id, Fraction = 1.15})
 	Attach({ Id = components.YesButton.Id, DestinationId = components.Background.Id, OffsetX = -150, OffsetY = 75 })
@@ -405,7 +380,7 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	})
 	
 	components.NoButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.NoButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "ModUtil.Anchors.Menu."..group..".Funcs.No" )
+	components.NoButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "menuScreens."..group..".Funcs.No" )
 	SetScaleX({Id = components.NoButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.NoButton.Id, Fraction = 1.15})
 	Attach({ Id = components.NoButton.Id, DestinationId = components.Background.Id, OffsetX = 150, OffsetY = 75 })
@@ -433,7 +408,8 @@ end
 
 do
 	local ups = ModUtil.UpValues( function( )
-		return callableCandidateTypes, isPath, routeKey
+		return menuScreens, closeFuncs, forceClosed,
+		orderPrintStack, closePrintStack, printDisplay
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end
