@@ -213,6 +213,8 @@ ModUtil.Mod.Data = setmetatable( { }, {
 	end	
 } )
 
+local funcsToLoad = { }
+
 local function loadFuncs( triggerArgs )
 	for _, v in pairs( funcsToLoad ) do
 		v( triggerArgs )
