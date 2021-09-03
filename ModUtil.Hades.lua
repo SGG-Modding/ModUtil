@@ -408,7 +408,7 @@ end
 
 do
 	local ups = ModUtil.UpValues( function( )
-		return menuScreens, closeFuncs, forceClosed,
+		return menuScreens, closeFuncs, forceClosed, printStack,
 		orderPrintStack, closePrintStack, printDisplay
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
