@@ -2200,7 +2200,7 @@ function ModUtil.Override( base, value, mod )
 	if overrides[ value ] then
 		error( "cannot override with existing reference", 2 )
 	end
-	local node, parent = base
+	local node, parent = base, nil
 	while decorators[ node ] do
 		parent = node
 		node = decorators[ node ].Base
@@ -2208,8 +2208,10 @@ function ModUtil.Override( base, value, mod )
 	overrides[ value ] = { Base = node, Mod = mod }
 	if parent then
 		decorators[ parent ].Base = value
+		return ModUtil.Decorate.Refresh( base )
 	end
-	return ModUtil.Decorate.Refresh( base )
+	return value
+	
 end
 
 function ModUtil.Restore( base )
