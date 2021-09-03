@@ -155,14 +155,14 @@ end
 local printStack = nil
 
 local function closePrintStack()
-	if ModUtil.Hades.Anchors.PrintStack then
-		ModUtil.Hades.Anchors.PrintStack.CullEnabled = false
+	if printStack then
+		printStack.CullEnabled = false
 		PlaySound({ Name = "/SFX/Menu Sounds/GeneralWhooshMENU" })
-		ModUtil.Hades.Anchors.PrintStack.KeepOpen = false
+		printStack.KeepOpen = false
 		
-		CloseScreen(GetAllIds(ModUtil.Hades.Anchors.PrintStack.Components),0)
+		CloseScreen(GetAllIds(printStack.Components),0)
 		closeFuncs["PrintStack"] = nil
-		ModUtil.Hades.Anchors.PrintStack = nil
+		printStack = nil
 	end
 end
 
@@ -250,12 +250,12 @@ function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, so
 	text = " "..text.." "
 	
 	local first = false
-	if not ModUtil.Hades.Anchors.PrintStack then
+	if not printStack then
 		first = true
-		ModUtil.Hades.Anchors.PrintStack = { Components = {} }
+		printStack = { Components = {} }
 		closeFuncs["PrintStack"] = closePrintStack
 	end
-	local screen = ModUtil.Hades.Anchors.PrintStack
+	local screen = printStack
 	local components = screen.Components
 	
 	if first then 
