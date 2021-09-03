@@ -1072,31 +1072,31 @@ stackLevelProperty = {
 
 local stackLevelFunction = {
 	gethook = function( self, ... )
-		return debug.gethook( self.co, ... )
+		return pusherror( debug.gethook, self.co, ... )
 	end,
 	sethook = function( self, ... )
-		return debug.sethook( self.co, ... )
+		return pusherror( debug.sethook, self.co, ... )
 	end,
 	getlocal = function( self, ... )
-		return debug.getlocal( self.co, self.here, ... )
+		return pusherror( debug.getlocal, self.co, self.here, ... )
 	end,
 	setlocal = function( self, ... )
-		return debug.setlocal( self.co, self.here, ... )
+		return pusherror( debug.setlocal, self.co, self.here, ... )
 	end,
 	getinfo = function( self, ... )
-		return debug.getinfo( self.co, self.here, ... )
+		return pusherror( debug.getinfo, self.co, self.here, ... )
 	end,
 	getupvalue = function( self, ... )
-		return debug.getupvalue( self.func, ... )
+		return pusherror( debug.getupvalue, self.func, ... )
 	end,
 	setupvalue = function( self, ... )
-		return debug.setupvalue( self.func, ... )
+		return pusherror( debug.setupvalue, self.func, ... )
 	end,
 	upvalueid = function( self, ... )
-		return debug.upvalueid( self.func, ... )
+		return pusherror( debug.upvalueid, self.func, ... )
 	end,
 	upvaluejoin = function( self, ... )
-		return debug.upvaluejoin( self.func, ... )
+		return pusherror( debug.upvaluejoin, self.func, ... )
 	end
 }
 
@@ -1117,7 +1117,7 @@ ModUtil.Metatables.StackLevel = {
 		elseif stackLevelFunction[ key ] then
 			local func = stackLevelInterface[ key ]
 			return function( ... )
-				return func( self, ... )
+				return pusherror( func, self, ... )
 			end
 		end
 	end,
