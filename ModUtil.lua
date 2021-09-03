@@ -651,7 +651,7 @@ function ModUtil.Print.Debug( ... )
 end
 
 function ModUtil.Print.Traceback( level )
-	level = level or 1
+	level = (level or 1) + 1
 	ModUtil.Print("Traceback:")
 	local cont = true
 	while cont do
@@ -2294,7 +2294,7 @@ do
 	return _G,
 		objectData, newObjectData, getObjectData,
 		decorators, overrides, refresh,
-		threadEnvironments, getEnv, replaceGlobalEnvironment,
+		threadEnvironments, threadContexts, getEnv, replaceGlobalEnvironment,
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
