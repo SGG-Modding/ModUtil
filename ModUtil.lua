@@ -2051,7 +2051,7 @@ ModUtil.Context.Call = ModUtil.Context(
 )
 
 ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( _, func, context, mod )
-	return ModUtil.Wrap.Bottom( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
+	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
 end )
 
 
