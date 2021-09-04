@@ -2051,7 +2051,7 @@ ModUtil.Context.Call = ModUtil.Context(
 )
 
 ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( _, func, context, mod )
-	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
+	return ModUtil.Wrap.Bottom( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
 end )
 
 
@@ -2153,6 +2153,34 @@ ModUtil.Mods.Data.ModUtil = ModUtil
 local decorators = setmetatable( { }, { __mode = "k" } )
 local overrides = setmetatable( { }, { __mode = "k" } )
 
+
+local function cloneDecorNode( node, base )
+	local copy = ModUtil.Table.Copy( decorators[ node ] )
+	base = base or copy.Base
+	local clone = copy.Func(base)
+	if decorators[ clone ] then
+		error( "decorator produced duplicate reference", 2 )
+	end
+	decorators[ clone ] = copy
+	return clone
+end
+
+local function cloneDecorHistory( parents, node, base )
+	local clone = base
+	while node do
+		clone = cloneDecorNode( node, clone )
+		node = parents[ node ]
+	end
+	return clone
+end
+
+local function refreshDecorHistory( parent, stop )
+	local node = decorators[ parent ].Base
+	if node == stop then return node end
+	node = decorators[ node ] and refreshDecorHistory( node ) or node
+	return cloneDecorNode( parent, node )
+end
+
 local function wrapDecorator( wrap )
 	return function( base )
 		return function( ... ) return wrap( base, ... ) end
@@ -2171,7 +2199,6 @@ end )
 function ModUtil.Decorate.Pop( obj )
 	if not decorators[ obj ] then
 		error( "object has no decorators", 2 )
-		return obj -- if error is ignored
 	end
 	return decorators[ obj ].Base
 end
@@ -2180,49 +2207,39 @@ function ModUtil.Decorate.Inject( base, func, mod )
 	local out = func( base )
 	if decorators[ out ] then
 		error( "decorator produced duplicate reference", 2 )
-		return base -- if error is ignored
 	end
-	local node, parent = base, nil
+	local node, parent, parents = base, nil, { }
 	while decorators[ node ] do
 		parent = node
 		node = decorators[ node ].Base
+		parents[ node ] = parent
 	end
 	decorators[ out ] = { Base = node, Func = func, Mod = mod }
 	if parent then
-		decorators[ parent ].Base = out
-		return ModUtil.Decorate.Refresh( base )
+		return cloneDecorHistory( parents, parent, out )
 	end
 	return out
 end
 
 function ModUtil.Decorate.Eject( base )
-	local node, parent = base, nil
-	if not decorators[ node ] then
+	if not decorators[ base ] then
 		error( "object has no decorators", 2 )
-		return out -- if error is ignored
 	end
+	local node, parent, parents = base, nil, { }
 	while decorators[ node ] and decorators[ decorators[ node ].Base ] do
 		parent = node
 		node = decorators[ node ].Base
+		parents[ node ] = parent
 	end
 	if parent then
-		decorators[ parent ].Base = decorators[ node ].Base
-		return ModUtil.Decorate.Refresh( base )
+		return cloneDecorHistory( parents, parent, decorators[ node ].Base )
 	end
 	return decorators[ node ].Base
 end
 
-local function refresh( parent )
-	local node = decorators[ parent ].Base
-	node = decorators[ node ] and refresh( node ) or node
-	local new = decorators[ parent ].Func( node )
-	decorators[ new ] = { Base = node, decorators[ parent ].Func, decorators[ parent ].Mod }
-	return new
-end
-
 function ModUtil.Decorate.Refresh( obj )
 	if decorators[ obj ] then
-		return refresh( obj )
+		return refreshDecorHistory( obj )
 	end
 	return obj
 end
@@ -2239,24 +2256,25 @@ function ModUtil.Override( base, value, mod )
 	if overrides[ value ] then
 		error( "cannot override with existing reference", 2 )
 	end
-	local node, parent = base, nil
+	local node, parent, parents = base, nil, { }
 	while decorators[ node ] do
 		parent = node
 		node = decorators[ node ].Base
+		parents[ node ] = parent
 	end
 	overrides[ value ] = { Base = node, Mod = mod }
 	if parent then
-		decorators[ parent ].Base = value
-		return ModUtil.Decorate.Refresh( base )
+		return cloneDecorHistory( parents, parent, value )
 	end
 	return value
 end
 
 function ModUtil.Restore( base )
-	local node, parent = base
+	local node, parent, parents = base, nil, { }
 	while decorators[ node ] do
 		parent = node
 		node = decorators[ node ].Base
+		parents[ node ] = parent
 	end
 	if overrides[ node ] then
 		node = overrides[ node ].Base
@@ -2264,9 +2282,9 @@ function ModUtil.Restore( base )
 		error( "object has no overrides", 2 )
 	end
 	if parent then
-		decorators[ parent ].Base = node.Base
+		return cloneDecorHistory( parents, parent, node )
 	end 
-	return ModUtil.Decorate.Refresh( base )
+	return node
 end
 
 function ModUtil.Overriden( obj )
@@ -2331,7 +2349,7 @@ do
 	local ups = ModUtil.UpValues( function( )
 	return _G,
 		objectData, newObjectData, getObjectData,
-		decorators, overrides, refresh,
+		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
 		threadEnvironments, threadContexts, getEnv, replaceGlobalEnvironment,
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
