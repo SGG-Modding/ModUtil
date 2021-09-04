@@ -2051,7 +2051,7 @@ ModUtil.Context.Call = ModUtil.Context(
 )
 
 ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( _, func, context, mod )
-	return ModUtil.Wrap( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
+	return ModUtil.Wrap.Bottom( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
 end )
 
 
@@ -2168,17 +2168,48 @@ ModUtil.Decorate = ModUtil.Callable.Set( { }, function( _, base, func, mod )
 	return out
 end )
 
-function ModUtil.Wrap( base, wrap, mod )
-	return ModUtil.Decorate( base, wrapDecorator( wrap ), mod )
-end
-
 function ModUtil.Decorate.Pop( obj )
-	local callback = decorators[ obj ]
-	if not callback then
+	if not decorators[ obj ] then
 		error( "object has no decorators", 2 )
 		return obj -- if error is ignored
 	end
-	return callback.Base
+	return decorators[ obj ].Base
+end
+
+function ModUtil.Decorate.Inject( base, func, mod )
+	local out = func( base )
+	if decorators[ out ] then
+		error( "decorator produced duplicate reference", 2 )
+		return base -- if error is ignored
+	end
+	local node, parent = base, nil
+	while decorators[ node ] do
+		parent = node
+		node = decorators[ node ].Base
+	end
+	decorators[ out ] = { Base = node, Func = func, Mod = mod }
+	if parent then
+		decorators[ parent ].Base = out
+		return ModUtil.Decorate.Refresh( base )
+	end
+	return out
+end
+
+function ModUtil.Decorate.Eject( base )
+	local node, parent = base, nil
+	if not decorators[ node ] then
+		error( "object has no decorators", 2 )
+		return out -- if error is ignored
+	end
+	while decorators[ node ] and decorators[ decorators[ node ].Base ] do
+		parent = node
+		node = decorators[ node ].Base
+	end
+	if parent then
+		decorators[ parent ].Base = decorators[ node ].Base
+		return ModUtil.Decorate.Refresh( base )
+	end
+	return decorators[ node ].Base
 end
 
 local function refresh( parent )
@@ -2196,6 +2227,14 @@ function ModUtil.Decorate.Refresh( obj )
 	return obj
 end
 
+ModUtil.Wrap = ModUtil.Callable.Set( { }, function( _, base, wrap, mod )
+	return ModUtil.Decorate( base, wrapDecorator( wrap ), mod )
+end )
+
+function ModUtil.Wrap.Bottom( base, wrap, mod )
+	return ModUtil.Decorate.Inject( base, wrapDecorator( wrap ), mod )
+end
+
 function ModUtil.Override( base, value, mod )
 	if overrides[ value ] then
 		error( "cannot override with existing reference", 2 )
@@ -2211,7 +2250,6 @@ function ModUtil.Override( base, value, mod )
 		return ModUtil.Decorate.Refresh( base )
 	end
 	return value
-	
 end
 
 function ModUtil.Restore( base )
