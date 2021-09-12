@@ -82,7 +82,7 @@ function ModUtil.Mod.Register( first, second )
 	path = path .. modName
 	ModUtil.Mods.Data[ path ] = mod
 	ModUtil.Identifiers.Inverse[ path ] = mod
-	return setmetatable( mod, { __index = ModUtil.Mod } )
+	return setmetatable( mod, ModUtil.Metatables.Mod )
 end
 
 local objectData = ModUtil.Internal.objectData
@@ -171,6 +171,7 @@ end
 ModUtil.Mod.Data = setmetatable( { }, {
 	__call = function( _, mod )
 		ModData = ModData or { }
+		SaveIgnores["ModData"] = false
 		local key = ModUtil.Mods.Inverse[ mod ]
 		local data = ModData[ key ]
 		if not data then
@@ -213,6 +214,24 @@ ModUtil.Mod.Data = setmetatable( { }, {
 	end	
 } )
 
+local relativeTable = { }
+
+relativeTable[ ModUtil.Mod.Data ] = true
+
+ModUtil.Metatables.Mod = {
+	__index = function( self, key )
+		local val = ModUtil.Mod[ key ]
+		if relativeTable[ val ] then
+			return val( self )
+		elseif type( val ) == "function" then
+			return ModUtil.Wrap( val, function( base, ... )
+				return base( self, ... )
+			end, ModUtil )
+		end
+		return val
+	end
+}
+
 local funcsToLoad = { }
 
 local function loadFuncs( triggerArgs )
@@ -251,7 +270,7 @@ end
 do
 	local ups = ModUtil.UpValues( function( )
 		return _G, funcsToLoad, loadFuncs, isPath, routeKey, callableCandidateTypes,
-			objectData, passByValueTypes, modDataKey, modDataProxy, modDataPlain
+			objectData, passByValueTypes, modDataKey, modDataProxy, modDataPlain, relativeTable
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end
