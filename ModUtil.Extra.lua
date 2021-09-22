@@ -70,7 +70,7 @@ end
 
 ModUtil.Path.Context = { }
 
-ModUtil.Path.Wrap = ModUtil.Callable.Set( { }, function( path, wrap, mod )
+ModUtil.Path.Wrap = ModUtil.Callable.Set( { }, function( _, path, wrap, mod )
 	return ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
 end )
 
