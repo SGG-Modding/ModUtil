@@ -350,7 +350,7 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	Attach({ Id = components.Icon.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = -50})
 	SetAnimation({ Name = icon, DestinationId = components.Icon.Id, Scale = iconScale })
 
-	ModUtil.Nodes.New(menuScreens[group], "Funcs")
+	ModUtil.Node.New(menuScreens[group], "Funcs")
 	menuScreens[group].Funcs={
 		Yes = function(screen, button)
 				if not yesFunc(screen,button) then
