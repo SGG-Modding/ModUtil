@@ -125,7 +125,7 @@ end
 	Global variable lookups (including function calls) in that function
 	will use the new environment table rather than the normal one.
 	This is useful for function-specific overrides. The new environment
-	table should generally have _G as its __index and __newindex, so that any globals
+	table should generally have _ENV_ORIGINAL as its __index and __newindex, so that any globals
 	other than those being deliberately overridden operate as usual.
 ]]
 function setfenv( fn, env )
@@ -222,17 +222,17 @@ local excludedFieldNames = toLookup{ "and", "break", "do", "else", "elseif", "en
 
 -- Environment Manipulation
 
-local _G = _ENV
-local __G
+local _ENV_ORIGINAL = _ENV
+local _ENV_REPLACED
 
 local threadEnvironments = setmetatable( { }, { __mode = "k" } )
 
 local function getEnv( thread )
-	return threadEnvironments[ thread or coroutine.running( ) ] or _G
+	return threadEnvironments[ thread or coroutine.running( ) ] or _ENV_ORIGINAL
 end
 
 local function replaceGlobalEnvironment( )
-	__G = debug.setmetatable( { }, {
+	_ENV_REPLACED = debug.setmetatable( { }, {
 		__index = function( _, key )
 			return getEnv( )[ key ]
 		end,
@@ -255,12 +255,12 @@ local function replaceGlobalEnvironment( )
 			return ipairs( getEnv( ) )
 		end
 	} )
-	_G._G = __G
+	_ENV_ORIGINAL._G = _ENV_REPLACED
 	local reg = debug.getregistry( )
 	for i, v in ipairs( reg ) do
-		if v == _G then reg[ i ] = __G end
+		if v == _ENV_ORIGINAL then reg[ i ] = _ENV_REPLACED end
 	end
-	ModUtil.Identifiers.Inverse._ENV = __G
+	ModUtil.Identifiers.Inverse._ENV = _ENV_REPLACED
 end
 
 -- Managed Object Data
@@ -566,7 +566,7 @@ ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, o, seen )
 end )
 
 local function isNamespace( obj )
-	return obj == _G or obj == _ENV or obj == objectData or ModUtil.Mods.Inverse[ obj ]
+	return obj == _ENV_ORIGINAL or obj == _ENV or obj == objectData or ModUtil.Mods.Inverse[ obj ]
 		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( getObjectData( obj, "data" ) ) )
 end
 
@@ -693,7 +693,7 @@ function ModUtil.Print.Namespaces( level )
 	ModUtil.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 	text = ModUtil.ToString.Deep.Namespaces( ModUtil.UpValues( level + 1 ) )
 	ModUtil.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.Deep.Namespaces( _ENV )
+	text = ModUtil.ToString.Deep.Namespaces( _G )
 	ModUtil.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
@@ -705,7 +705,7 @@ function ModUtil.Print.Variables( level )
 	ModUtil.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 	text = ModUtil.ToString.Deep.NoNamespaces( ModUtil.UpValues( level + 1 ) )
 	ModUtil.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.Deep.NoNamespaces( _ENV )
+	text = ModUtil.ToString.Deep.NoNamespaces( _G )
 	ModUtil.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
@@ -984,7 +984,7 @@ function ModUtil.Path.Join( p, ... )
 end
 
 function ModUtil.Path.Map( path, map, ... )
-	return ModUtil.IndexArray.Map( _ENV, ModUtil.Path.IndexArray( path ), map, ... )
+	return ModUtil.IndexArray.Map( _G, ModUtil.Path.IndexArray( path ), map, ... )
 end
 
 --[[
@@ -1024,7 +1024,7 @@ end
 				 If not provided, retreive a global.
 --]]
 function ModUtil.Path.Get( path, base )
-	return ModUtil.IndexArray.Get( base or _ENV, ModUtil.Path.IndexArray( path ) )
+	return ModUtil.IndexArray.Get( base or _G, ModUtil.Path.IndexArray( path ) )
 end
 
 --[[
@@ -1038,7 +1038,7 @@ end
 				 If not provided, retreive a global.
 --]]
 function ModUtil.Path.Set( path, value, base )
-	return ModUtil.IndexArray.Set( base or _ENV, ModUtil.Path.IndexArray( path ), value )
+	return ModUtil.IndexArray.Set( base or _G, ModUtil.Path.IndexArray( path ), value )
 end
 
 -- Metaprogramming Shenanigans
@@ -1992,7 +1992,7 @@ ModUtil.Metatables.Context = {
 		threadContexts[ thread ] = contextInfo
 
 		local penv = threadEnvironments[ thread ]
-		contextInfo.penv = threadEnvironments[ thread ] or _G
+		contextInfo.penv = threadEnvironments[ thread ] or _ENV_ORIGINAL
 
 		contextInfo.context = self
 		contextInfo.args = table.pack( ... )
@@ -2051,7 +2051,7 @@ ModUtil.Context.Call = ModUtil.Context(
 )
 
 ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( _, func, context, mod )
-	return ModUtil.Wrap.Bottom( func, function( base, ... ) ModUtil.Context.Call( base, context, ... ) end, mod )
+	return ModUtil.Wrap.Bottom( func, function( base, ... ) return ModUtil.Context.Call( base, context, ... ) end, mod )
 end )
 
 
@@ -2140,7 +2140,7 @@ ModUtil.Identifiers = ModUtil.Entangled.Map.Unique( )
 setmetatable( getObjectData( ModUtil.Identifiers.Data, "Inverse" ), { __mode = "k" } )
 setmetatable( getObjectData( ModUtil.Identifiers.Inverse, "Data" ), { __mode = "v" } )
 
-ModUtil.Identifiers.Inverse._G = _G
+ModUtil.Identifiers.Inverse._G = _ENV_ORIGINAL
 ModUtil.Identifiers.Inverse.ModUtil = ModUtil
 
 ModUtil.Mods = ModUtil.Entangled.Map.Unique( )
@@ -2347,7 +2347,7 @@ ModUtil.Internal = ModUtil.Entangled.Union( )
 
 do
 	local ups = ModUtil.UpValues( function( )
-	return _G,
+	return _ENV_ORIGINAL,
 		objectData, newObjectData, getObjectData,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
 		threadEnvironments, threadContexts, getEnv, replaceGlobalEnvironment,
