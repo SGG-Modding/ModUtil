@@ -285,7 +285,7 @@ ModUtil.Metatables.Proxy = {
 		objectData[ self ][ key ] = value
 	end,
 	__len = function( self, ...)
-		return #objectdata( self )
+		return #objectData( self )
 	end,
 	__next = function( self, ... )
 		return next( objectData[ self ], ... )
@@ -566,14 +566,12 @@ ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, o, seen )
 end )
 
 local function isNamespace( obj )
-	return obj == _ENV_ORIGINAL or obj == _ENV or obj == objectData or ModUtil.Mods.Inverse[ obj ]
+	return obj == _ENV_ORIGINAL or obj == _ENV_REPLACED or obj == objectData or ModUtil.Mods.Inverse[ obj ]
 		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( getObjectData( obj, "data" ) ) )
 end
 
 function ModUtil.ToString.Deep.NoNamespaces( o, seen )
-	local first = false
 	if not seen then
-		first = true
 		seen = { }
 	end
 	if type( o ) == "table" and not seen[ o ] and not isNamespace( o ) then
@@ -595,9 +593,7 @@ function ModUtil.ToString.Deep.NoNamespaces( o, seen )
 end
 
 function ModUtil.ToString.Deep.Namespaces( o, seen )
-	local first = false
 	if not seen then
-		first = true
 		seen = { }
 	end
 	if type( o ) == "table" and not seen[ o ] and isNamespace( o ) then
@@ -775,7 +771,7 @@ function ModUtil.Array.Join( a, ... )
 end
 
 ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( _, t )
-	c = { }
+	local c = { }
 	for k, v in pairs( t ) do
 		c[ k ] = v
 	end
@@ -783,7 +779,7 @@ ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( _, t )
 end )
 
 function ModUtil.Table.Copy.Deep( t )
-	c = { }
+	local c = { }
 	for k, v in pairs( t ) do
 		if type( v ) == "table" then
 			v = ModUtil.Table.Copy( v )
@@ -1452,7 +1448,7 @@ ModUtil.Metatables.UpValues.Stacked = {
 			until not n
 		end
 	end,
-	__inext = function( ) return end,
+	__inext = function( ) end,
 	__pairs = function( self )
 		return qrawpairs( self ), self
 	end,
@@ -1514,7 +1510,7 @@ ModUtil.Metatables.Locals = {
 			end
 		until not n
 	end,
-	__inext = function( ) return end,
+	__inext = function( ) end,
 	__pairs = function( self )
 		return qrawpairs( self ), self
 	end,
@@ -1589,7 +1585,7 @@ ModUtil.Metatables.Locals.Names = {
 			end
 		end
 	end,
-	__newindex = function( ) return end,
+	__newindex = function( ) end,
 	__len = ModUtil.Metatables.Locals.Values.__len,
 	__next = function( self, idx )
 		if idx == nil then idx = 0 end
@@ -1669,7 +1665,7 @@ ModUtil.Metatables.Locals.Stacked = {
 			until not n
 		end
 	end,
-	__inext = function( ) return end,
+	__inext = function( ) end,
 	__pairs = function( self )
 		return qrawpairs( self ), self
 	end,

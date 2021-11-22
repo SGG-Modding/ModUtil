@@ -98,7 +98,7 @@ local function modDataProxy( value, level )
 		if getmetatable( value ) then
 			error( "saved data tables cannot have values with metatables", level )
 		end
-		return ModUtil.Entangled.ModData( value, level )
+		return ModUtil.Entangled.ModData( value )
 	end
 	error( "saved data tables cannot have values of type "..t..".", level )
 end
@@ -119,7 +119,8 @@ local function modDataPlain( obj, key, value, level )
 			obj[ key ] = value
 		elseif t == "table" then
 			if getmetatable( value ) then
-				local state, value = pcall( function( ) return objectData[ value ] end )
+				local state
+				state, value = pcall( function( ) return objectData[ value ] end )
 				if not state then
 					error( "saved data tables cannot have values with metatables", level )
 				end
