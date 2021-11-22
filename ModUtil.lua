@@ -140,7 +140,7 @@ function setfenv( fn, env )
 			debug.upvaluejoin( fn, i, ( function( )
 				return env
 			end ), 1 )
-			return
+			return env
 		end
 	until not name
 end
@@ -2022,6 +2022,7 @@ ModUtil.Context.Data = ModUtil.Context( function( info )
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
 	} )
+	info.final = { tbl }
 end )
 
 ModUtil.Context.Meta = ModUtil.Context( function( info )
@@ -2030,6 +2031,22 @@ ModUtil.Context.Meta = ModUtil.Context( function( info )
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
 	} )
+	info.final = { tbl }
+end )
+
+ModUtil.Context.Env = ModUtil.Context( function( info )
+	local env = getfenv( info.arg )
+	if env == nil then return end
+	if env == _ENV_REPLACED then
+		env = setfenv( info.arg, setmetatable( { }, {
+			__index = _ENV_REPLACED, __newindex = _ENV_REPLACED
+		} ) )
+	end
+	info.env = setmetatable( { }, {
+		__index = function( _, key ) return rawget( env, key ) or info.penv[ key ] end,
+		__newindex = function( _, key, val ) return rawset( env, key, val ) end
+	} )
+	info.final = { env }
 end )
 
 ModUtil.Context.Call = ModUtil.Context(
@@ -2346,7 +2363,7 @@ do
 	return _ENV_ORIGINAL,
 		objectData, newObjectData, getObjectData,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
-		threadEnvironments, threadContexts, getEnv, replaceGlobalEnvironment,
+		threadContexts, threadEnvironments, getEnv, replaceGlobalEnvironment, 
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames
