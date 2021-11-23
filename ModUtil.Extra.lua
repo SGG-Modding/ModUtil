@@ -2,6 +2,10 @@
 
 ModUtil.IndexArray.Context = { }
 
+function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
+	return ModUtil.Context.Env( ModUtil.IndexArray.Get( baseTable, indexArray ), context )
+end
+
 ModUtil.IndexArray.Wrap = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, wrap, mod )
 	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
 end )
@@ -69,6 +73,10 @@ end
 ---
 
 ModUtil.Path.Context = { }
+
+function ModUtil.Path.Context.Env( path, context )
+	return ModUtil.Context.Env( ModUtil.Path.Get( path ), context )
+end
 
 ModUtil.Path.Wrap = ModUtil.Callable.Set( { }, function( _, path, wrap, mod )
 	return ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )

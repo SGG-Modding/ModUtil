@@ -223,7 +223,7 @@ local excludedFieldNames = toLookup{ "and", "break", "do", "else", "elseif", "en
 -- Environment Manipulation
 
 local _ENV_ORIGINAL = _ENV
-local _ENV_REPLACED
+local _ENV_REPLACED = _ENV
 
 local threadEnvironments = setmetatable( { }, { __mode = "k" } )
 
@@ -2035,10 +2035,11 @@ ModUtil.Context.Meta = ModUtil.Context( function( info )
 end )
 
 ModUtil.Context.Env = ModUtil.Context( function( info )
-	local env = getfenv( info.arg )
+	local func = ModUtil.Overriden( info.arg )
+	local env = getfenv( func )
 	if env == nil then return end
 	if env == _ENV_REPLACED then
-		env = setfenv( info.arg, setmetatable( { }, {
+		env = setfenv( func, setmetatable( { }, {
 			__index = _ENV_REPLACED, __newindex = _ENV_REPLACED
 		} ) )
 	end
@@ -2274,6 +2275,12 @@ function ModUtil.Override( base, value, mod )
 		parent = node
 		node = decorators[ node ].Base
 		parents[ node ] = parent
+	end
+	if type( value ) == "function" and type( node ) == "function" then
+		local env = getfenv( node )
+		if getfenv( value ) == _ENV_REPLACED and env then
+			setfenv( value, env )
+		end
 	end
 	overrides[ value ] = { Base = node, Mod = mod }
 	if parent then
