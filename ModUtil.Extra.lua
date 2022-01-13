@@ -59,15 +59,15 @@ function ModUtil.IndexArray.Original( baseTable, indexArray )
 end
 
 function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
-	return ModUtil.ReferFunction( function( ... )
-		ModUtil.Get( ModUtil.IndexArray.Get( ... ) )
-	end, baseTable, indexArray )
+	return ModUtil.ReferFunction( function( )
+		ModUtil.IndexArray.Get( baseTable, indexArray )
+	end )
 end
 
 function ModUtil.IndexArray.ReferTable( baseTable, indexArray )
-	return ModUtil.ReferTable( function( ... )
-		ModUtil.Get( ModUtil.IndexArray.Get( ... ) )
-	end, baseTable, indexArray )
+	return ModUtil.ReferTable( function( )
+		ModUtil.IndexArray.Get( baseTable, indexArray )
+	end )
 end
 
 ---
@@ -123,13 +123,13 @@ function ModUtil.Path.Original( path )
 end
 
 function ModUtil.Path.ReferFunction( path )
-	return ModUtil.ReferFunction( function( ... )
-		ModUtil.Path.Get( ... )
-	end, path )
+	return ModUtil.ReferFunction( function( )
+		return ModUtil.Path.Get( path )
+	end )
 end
 
 function ModUtil.Path.ReferTable( path )
-	return ModUtil.ReferTable( function( ... )
-		ModUtil.Path.Get( ... )
-	end, path )
+	return ModUtil.ReferTable( function( )
+		return ModUtil.Path.Get( path )
+	end )
 end

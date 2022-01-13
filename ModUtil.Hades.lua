@@ -366,11 +366,11 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 
 	components.CloseButton = CreateScreenComponent({ Name = "ButtonClose", Scale = 0.7, Group = group })
 	Attach({ Id = components.CloseButton.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = ScreenCenterY - 315 })
-	components.CloseButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "ModUtil.Hades.CloseMenuYesNo" )
+	components.CloseButton.OnPressedFunctionName = "ModUtil.Hades.CloseMenuYesNo"
 	components.CloseButton.ControlHotkey = "Cancel"
 
 	components.YesButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.YesButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "menuScreens."..group..".Funcs.Yes" )
+	components.YesButton.OnPressedFunctionName = "menuScreens."..group..".Funcs.Yes"
 	SetScaleX({Id = components.YesButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.YesButton.Id, Fraction = 1.15})
 	Attach({ Id = components.YesButton.Id, DestinationId = components.Background.Id, OffsetX = -150, OffsetY = 75 })
@@ -380,7 +380,7 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	})
 	
 	components.NoButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.NoButton.OnPressedFunctionName = ModUtil.Path.ReferFunction( "menuScreens."..group..".Funcs.No" )
+	components.NoButton.OnPressedFunctionName = "menuScreens."..group..".Funcs.No"
 	SetScaleX({Id = components.NoButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.NoButton.Id, Fraction = 1.15})
 	Attach({ Id = components.NoButton.Id, DestinationId = components.Background.Id, OffsetX = 150, OffsetY = 75 })
@@ -393,7 +393,7 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 end
 
 function ModUtil.Hades.CloseMenuYesNo( screen, button )
-	PlaySound({ Name = "/SFX/Menu Sounds/GeneralWhooshMENU" })
+	PlaySound( { Name = "/SFX/Menu Sounds/GeneralWhooshMENU" } )
 	ModUtil.Hades.CloseMenu( screen, button )
 end
 
@@ -401,7 +401,7 @@ end
 
 function ModUtil.Hades.RandomElement( tableArg, rng )
 	local Collapsed = CollapseTable( tableArg )
-	return Collapsed[RandomInt( 1, #Collapsed, rng )]
+	return Collapsed[ RandomInt( 1, #Collapsed, rng ) ]
 end
 
 -- Internal Access

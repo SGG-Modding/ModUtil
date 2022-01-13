@@ -2319,10 +2319,9 @@ function ModUtil.Original( obj )
 	return ModUtil.Original( node.Base )
 end
 
-function ModUtil.ReferFunction( obtainer, ... )
-	local args = table.pack( ... )
+function ModUtil.ReferFunction( obtain )
 	return function( ... )
-		return obtainer( table.unpack( args ) )( ... )
+		return obtain( )( ... )
 	end
 end
 
@@ -2353,11 +2352,7 @@ ModUtil.Metatables.ReferTable = {
 	end
 }
 
-function ModUtil.ReferTable( obtainer, ... )
-	local args = table.pack( ... )
-	local obtain = function( )
-		return obtainer( table.unpack( args ) )
-	end
+function ModUtil.ReferTable( obtain, ... )
 	return ModUtil.Proxy( { obtain = obtain }, ModUtil.Metatables.ReferTable )
 end
 
