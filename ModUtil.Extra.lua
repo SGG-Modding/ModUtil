@@ -60,13 +60,13 @@ end
 
 function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
 	return ModUtil.ReferFunction( function( )
-		ModUtil.IndexArray.Get( baseTable, indexArray )
+		return ModUtil.IndexArray.Get( baseTable, indexArray )
 	end )
 end
 
 function ModUtil.IndexArray.ReferTable( baseTable, indexArray )
 	return ModUtil.ReferTable( function( )
-		ModUtil.IndexArray.Get( baseTable, indexArray )
+		return ModUtil.IndexArray.Get( baseTable, indexArray )
 	end )
 end
 
