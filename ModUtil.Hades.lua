@@ -350,27 +350,17 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	Attach({ Id = components.Icon.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = -50})
 	SetAnimation({ Name = icon, DestinationId = components.Icon.Id, Scale = iconScale })
 
-	ModUtil.Node.New(menuScreens[group], "Funcs")
-	menuScreens[group].Funcs={
-		Yes = function(screen, button)
-				if not yesFunc(screen,button) then
-					ModUtil.Hades.CloseMenuYesNo(screen,button)
-				end
-			end,
-		No = function(screen, button)
-				if not noFunc(screen,button) then
-					ModUtil.Hades.CloseMenuYesNo(screen,button)
-				end
-			end,
-	}
-
 	components.CloseButton = CreateScreenComponent({ Name = "ButtonClose", Scale = 0.7, Group = group })
 	Attach({ Id = components.CloseButton.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = ScreenCenterY - 315 })
-	components.CloseButton.OnPressedFunctionName = "ModUtil.Hades.CloseMenuYesNo"
+	components.CloseButton.OnPressedFunctionName = ModUtil.Hades.CloseMenuYesNo
 	components.CloseButton.ControlHotkey = "Cancel"
 
 	components.YesButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.YesButton.OnPressedFunctionName = "menuScreens."..group..".Funcs.Yes"
+	components.YesButton.OnPressedFunctionName = function(screen, button)
+		if not yesFunc(screen,button) then
+			ModUtil.Hades.CloseMenuYesNo(screen,button)
+		end
+	end
 	SetScaleX({Id = components.YesButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.YesButton.Id, Fraction = 1.15})
 	Attach({ Id = components.YesButton.Id, DestinationId = components.Background.Id, OffsetX = -150, OffsetY = 75 })
@@ -380,7 +370,11 @@ function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc
 	})
 	
 	components.NoButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.NoButton.OnPressedFunctionName = "menuScreens."..group..".Funcs.No"
+	components.NoButton.OnPressedFunctionName = function(screen, button)
+		if not noFunc( screen, button ) then
+			ModUtil.Hades.CloseMenuYesNo( screen, button )
+		end
+	end
 	SetScaleX({Id = components.NoButton.Id, Fraction = 0.75})
 	SetScaleY({Id = components.NoButton.Id, Fraction = 1.15})
 	Attach({ Id = components.NoButton.Id, DestinationId = components.Background.Id, OffsetX = 150, OffsetY = 75 })
