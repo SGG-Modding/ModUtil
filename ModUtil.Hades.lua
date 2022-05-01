@@ -1,4 +1,3 @@
-
 ModUtil.Mod.Register( "Hades", ModUtil )
 
 ModUtil.Table.Merge( ModUtil.Hades, {
@@ -391,11 +390,70 @@ function ModUtil.Hades.CloseMenuYesNo( screen, button )
 	ModUtil.Hades.CloseMenu( screen, button )
 end
 
--- Misc
+-- Trigger Proxy
 
-function ModUtil.Hades.RandomElement( tableArg, rng )
-	local Collapsed = CollapseTable( tableArg )
-	return Collapsed[ RandomInt( 1, #Collapsed, rng ) ]
+local triggers = { }
+
+local function isTrigger( name )
+	if name:sub( 1, 2 ) ~= "On" then return false end
+	local func = _G[ name ]
+	return type( func ) == "function" and debug.getinfo( func, "S" ).what == "C"
+end
+
+local proxyTriggerMeta = {
+	__index = function( s, k )
+		if type( k ) == "string" then
+			local w, n = pcall( tonumber, k )
+			if w then k = n end
+		end
+		return rawget( s, k )
+	end,
+	__newindex = function( s, k, v )
+		if type( k ) == "string" then
+			local w, n = pcall( tonumber, k )
+			if w then k = n end
+		end
+		rawset( s, k, v )
+	end
+}
+
+local function proxyTriggerCallback( indexArray, func, args )
+	local t = ModUtil.IndexArray.Get( triggers, indexArray ) or setmetatable( { }, proxyTriggerMeta )
+	local n = #t + 1
+	local f = ModUtil.Override( func, function( ... )
+		return t[ n ].Call( ... )
+	end )
+	table.insert( t, { Args = args, Call = func } )
+	ModUtil.IndexArray.Set( triggers, indexArray, t )
+	return f
+end
+
+local function proxyTrigger( name )
+	ModUtil.IndexArray.Wrap( _G, { name }, function( base, args, ... )
+		local cargs = ModUtil.Table.Copy( args )
+		local func = table.remove( cargs )
+		local file = debug.getinfo( 2, "S" ).source
+		args[ #args ] = proxyTriggerCallback( { name, file }, func, cargs )
+		return base( args, ... )
+	end )
+end
+
+setmetatable( triggers, {
+	__newindex = function( s, k, v )
+		if v == true then
+			proxyTrigger( k )
+			v = s[ k ] or { }
+		end
+		rawset( s, k, v )
+	end
+} )
+ModUtil.Hades.Triggers = triggers
+ModUtil.Identifiers.Inverse[ triggers ] = "ModUtil.Hades.Triggers"
+
+for k in pairs( _G ) do
+	if isTrigger( k ) then
+		proxyTrigger( k )
+	end
 end
 
 -- Internal Access
@@ -403,7 +461,8 @@ end
 do
 	local ups = ModUtil.UpValues( function( )
 		return menuScreens, closeFuncs, forceClosed, printStack,
-		orderPrintStack, closePrintStack, printDisplay
+			orderPrintStack, closePrintStack, printDisplay,
+			triggers, isTrigger, proxyTrigger, proxyTriggerMeta, proxyTriggerCallback
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end

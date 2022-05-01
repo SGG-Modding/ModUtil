@@ -273,10 +273,6 @@ local function newObjectData( data )
 	return obj
 end
 
-local function getObjectData( obj, key )
-	return objectData[ obj ][ key ]
-end
-
 ModUtil.Metatables.Proxy = {
 	__index = function( self, key )
 		return objectData[ self ][ key ]
@@ -307,25 +303,25 @@ end
 
 ModUtil.Metatables.Raw = {
 	__index = function( self, ... )
-		return rawget( getObjectData( self, "data" ), ... )
+		return rawget( objectData[ self ][ "data" ], ... )
 	end,
 	__newindex = function( self, ... )
-		return rawset( getObjectData( self, "data" ), ... )
+		return rawset( objectData[ self ][ "data" ], ... )
 	end,
 	__len = function( self, ...)
-		return rawlen( getObjectData( self, "data" ), ... )
+		return rawlen( objectData[ self ][ "data" ], ... )
 	end,
 	__next = function( self, ... )
-		return rawnext( getObjectData( self, "data" ), ... )
+		return rawnext( objectData[ self ][ "data" ], ... )
 	end,
 	__inext = function( self, ... )
-		return rawinext( getObjectData( self, "data" ), ... )
+		return rawinext( objectData[ self ][ "data" ], ... )
 	end,
 	__pairs = function( self, ... )
-		return rawpairs( getObjectData( self, "data" ), ... )
+		return rawpairs( objectData[ self ][ "data" ], ... )
 	end,
 	__ipairs = function( self, ... )
-		return rawipairs( getObjectData( self, "data" ), ... )
+		return rawipairs( objectData[ self ][ "data" ], ... )
 	end
 }
 
@@ -353,7 +349,8 @@ end
 function ModUtil.Callable.Set( o, f )
 	local m = getmetatable( o ) or { }
 	m.__call = f
-	return setmetatable( o, m ), f
+	pcall( setmetatable, o, m )
+	return o, f
 end
 
 function ModUtil.Callable.Map( o, f, ... )
@@ -567,7 +564,7 @@ end )
 
 local function isNamespace( obj )
 	return obj == _ENV_ORIGINAL or obj == _ENV_REPLACED or obj == objectData or ModUtil.Mods.Inverse[ obj ]
-		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( getObjectData( obj, "data" ) ) )
+		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( objectData[ obj ][ "data" ] ) )
 end
 
 function ModUtil.ToString.Deep.NoNamespaces( o, seen )
@@ -622,8 +619,8 @@ ModUtil.Print = ModUtil.Callable.Set( { }, function ( _, ... )
 	if io then
 		if io.stdout ~= io.output( ) then
 			ModUtil.Print.ToFile( io.output( ), ... )
+			io.flush( )
 		end
-		io.flush( )
 	end
 end )
 
@@ -1042,25 +1039,25 @@ end
 local stackLevelProperty
 stackLevelProperty = {
 	here = function( self )
-		local thread = getObjectData( self, "thread" )
-		local cursize = getObjectData( self, "level" ) + 1
+		local thread = objectData[ self ][ "thread" ]
+		local cursize = objectData[ self ][ "level" ] + 1
 		while debug.getinfo( thread, cursize, "f" ) do
 			cursize = cursize + 1
 		end
-		return cursize - getObjectData( self, "size" ) - 1
+		return cursize - objectData[ self ][ "size" ] - 1
 	end,
 	top = function( self )
-		local thread = getObjectData( self, "thread" )
-		local level = getObjectData( self, "level" )
+		local thread = objectData[ self ][ "thread" ]
+		local level = objectData[ self ][ "level" ]
 		local cursize = level + 1
 		while debug.getinfo( thread, cursize, "f" ) do
 			cursize = cursize + 1
 		end
 		return cursize - level - 1
 	end,
-	there = function( self ) return getObjectData( self, "level" ) end,
-	bottom = function( self ) return getObjectData( self, "size" ) end,
-	co = function( self ) return getObjectData( self, "thread" ) end,
+	there = function( self ) return objectData[ self ][ "level" ] end,
+	bottom = function( self ) return objectData[ self ][ "size" ] end,
+	co = function( self ) return objectData[ self ][ "thread" ] end,
 	func = function( self )
 		return debug.getinfo( self.co, self.here, "f" ).func
 	end
@@ -1135,9 +1132,9 @@ ModUtil.Metatables.StackLevel = {
 		return function( ) end, self
 	end,
 	__eq = function( self, other )
-		return getObjectData( self, "thread" ) == getObjectData( other, "thread" )
-		and getObjectData( self, "size" ) == getObjectData( other, "size")
-		and getObjectData( self, "level" ) == getObjectData( other, "level")
+		return objectData[ self ][ "thread" ] == objectData[ other ][ "thread" ]
+		and objectData[ self ][ "size" ] == objectData[ other ][ "size" ]
+		and objectData[ self ][ "level" ] == objectData[ other ][ "level" ]
 	end
 }
 
@@ -1157,11 +1154,11 @@ end
 
 ModUtil.Metatables.StackLevels = {
 	__index = function( self, level )
-		return ModUtil.StackLevel( ( level or 0 ) + getObjectData( self, "level" ).here )
+		return ModUtil.StackLevel( ( level or 0 ) + objectData[ self ][ "level" ].here )
 	end,
 	__newindex = function( ) end,
 	__len = function( self )
-		return getObjectData( self, "level" ).bottom
+		return objectData[ self ][ "level" ].bottom
 	end,
 	__next = function( self, level )
 		level = ( level or 0 ) + 1
@@ -1187,7 +1184,7 @@ local excludedUpValueNames = toLookup{ "_ENV" }
 ModUtil.Metatables.UpValues = {
 	__index = function( self, name )
 		if excludedUpValueNames[ name ] then return end
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		local idx = 0
 		repeat
 			idx = idx + 1
@@ -1199,7 +1196,7 @@ ModUtil.Metatables.UpValues = {
 	end,
 	__newindex = function( self, name, value )
 		if excludedUpValueNames[ name ] then return end
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		local idx = name and 0 or -1
 		repeat
 			idx = idx + 1
@@ -1214,7 +1211,7 @@ ModUtil.Metatables.UpValues = {
 		return 0
 	end,
 	__next = function( self, name )
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		local idx = name and 0 or -1
 		repeat
 			idx = idx + 1
@@ -1273,7 +1270,7 @@ end
 
 ModUtil.Metatables.UpValues.Ids = {
 	__index = function( self, idx )
-		local func =  getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		local name = debug.getupvalue( func, idx )
 		if name and not excludedUpValueNames[ name ] then
 			local id = debug.upvalueid( func, idx )
@@ -1282,7 +1279,7 @@ ModUtil.Metatables.UpValues.Ids = {
 		end
 	end,
 	__newindex = function( self, idx, value )
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		local name = debug.getupvalue( func, idx )
 		if name and not excludedUpValueNames[ name ] then
 			local func2, idx2 = getUpValueIdData( value )
@@ -1291,10 +1288,10 @@ ModUtil.Metatables.UpValues.Ids = {
 		end
 	end,
 	__len = function( self )
-		return debug.getinfo( getObjectData( self, "func" ), 'u' ).nups
+		return debug.getinfo( objectData[ self ][ "func" ], 'u' ).nups
 	end,
 	__next = function ( self, idx )
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		idx = idx or 0
 		local name
 		while true do
@@ -1322,13 +1319,13 @@ end
 
 ModUtil.Metatables.UpValues.Values = {
 	__index = function( self, idx )
-		local name, value = debug.getupvalue( getObjectData( self, "func" ), idx )
+		local name, value = debug.getupvalue( objectData[ self ][ "func" ], idx )
 		if name and not excludedUpValueNames[ name ] then
 			return value
 		end
 	end,
 	__newindex = function( self, idx, value )
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		local name = debug.getupvalue( func, idx )
 		if name and not excludedUpValueNames[ name ] then
 			debug.setupvalue( func, idx, value )
@@ -1336,10 +1333,10 @@ ModUtil.Metatables.UpValues.Values = {
 		end
 	end,
 	__len = function( self )
-		return debug.getinfo( getObjectData( self, "func" ), 'u' ).nups
+		return debug.getinfo( objectData[ self ][ "func" ], 'u' ).nups
 	end,
 	__next = function ( self, idx )
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		idx = idx or 0
 		local name, value
 		while true do
@@ -1365,7 +1362,7 @@ end
 
 ModUtil.Metatables.UpValues.Names = {
 	__index = function( self, idx )
-		local name = debug.getupvalue( getObjectData( self, "func" ), idx )
+		local name = debug.getupvalue( objectData[ self ][ "func" ], idx )
 		if name and not excludedUpValueNames[ name ] then
 			return name
 		end
@@ -1373,7 +1370,7 @@ ModUtil.Metatables.UpValues.Names = {
 	__newindex = function( ) end,
 	__len = ModUtil.Metatables.UpValues.Values.__len,
 	__next = function ( self, idx )
-		local func = getObjectData( self, "func" )
+		local func = objectData[ self ][ "func" ]
 		idx = idx or 0
 		local name
 		while true do
@@ -1400,7 +1397,7 @@ end
 ModUtil.Metatables.UpValues.Stacked = {
 	__index = function( self, name )
 		if excludedUpValueNames[ name ] then return end
-		for _, level in pairs( getObjectData( self, "levels" ) ) do
+		for _, level in pairs( objectData[ self ][ "levels" ] ) do
 			local idx = 0
 			repeat
 				idx = idx + 1
@@ -1413,7 +1410,7 @@ ModUtil.Metatables.UpValues.Stacked = {
 	end,
 	__newindex = function( self, name, value )
 		if excludedUpValueNames[ name ] then return end
-		for _, level in pairs( getObjectData( self, "levels" ) ) do
+		for _, level in pairs( objectData[ self ][ "levels" ] ) do
 			local idx = 0
 			repeat
 				idx = idx + 1
@@ -1429,7 +1426,7 @@ ModUtil.Metatables.UpValues.Stacked = {
 		return 0
 	end,
 	__next = function( self, name )
-		local levels = getObjectData( self, "levels" )
+		local levels = objectData[ self ][ "levels" ]
 		for _, level in pairs( levels ) do
 			local idx = name and 0 or -1
 			repeat
@@ -1466,7 +1463,7 @@ local excludedLocalNames = toLookup{ "(*temporary)", "(for generator)", "(for st
 ModUtil.Metatables.Locals = {
 	__index = function( self, name )
 		if excludedLocalNames[ name ] then return end
-		local level = getObjectData( self, "level" )
+		local level = objectData[ self ][ "level" ]
 		local idx = 0
 		repeat
 			idx = idx + 1
@@ -1478,7 +1475,7 @@ ModUtil.Metatables.Locals = {
 	end,
 	__newindex = function( self, name, value )
 		if excludedLocalNames[ name ] then return end
-		local level = getObjectData( self, "level" )
+		local level = objectData[ self ][ "level" ]
 		local idx = 0
 		repeat
 			idx = idx + 1
@@ -1493,7 +1490,7 @@ ModUtil.Metatables.Locals = {
 		return 0
 	end,
 	__next = function( self, name )
-		local level = getObjectData( self, "level" )
+		local level = objectData[ self ][ "level" ]
 		local idx = name and 0 or -1
 		repeat
 			idx = idx + 1
@@ -1525,7 +1522,7 @@ end )
 
 ModUtil.Metatables.Locals.Values = {
 	__index = function( self, idx )
-		local name, value = getObjectData( self, "level" ).getlocal( idx )
+		local name, value = objectData[ self ][ "level" ].getlocal( idx )
 		if name then
 			if not excludedLocalNames[ name ] then
 				return value
@@ -1533,7 +1530,7 @@ ModUtil.Metatables.Locals.Values = {
 		end
 	end,
 	__newindex = function( self, idx, value )
-		local level = getObjectData( self, "level" )
+		local level = objectData[ self ][ "level" ]
 		local name = level.getlocal( idx )
 		if name then
 			if not excludedLocalNames[ name ] then
@@ -1542,7 +1539,7 @@ ModUtil.Metatables.Locals.Values = {
 		end
 	end,
 	__len = function( self )
-		local level = getObjectData( self, "level" )
+		local level = objectData[ self ][ "level" ]
 		local idx = 1
 		while level.getlocal( level, idx ) do
 			idx = idx + 1
@@ -1552,7 +1549,7 @@ ModUtil.Metatables.Locals.Values = {
 	__next = function( self, idx )
 		idx = idx or 0
 		idx = idx + 1
-		local name, val = getObjectData( self, "level" ).getlocal( idx )
+		local name, val = objectData[ self ][ "level" ].getlocal( idx )
 		if name then
 			if not excludedLocalNames[ name ] then
 				return idx, val
@@ -1578,7 +1575,7 @@ end
 
 ModUtil.Metatables.Locals.Names = {
 	__index = function( self, idx )
-		local name = getObjectData( self, "level" ).getlocal( idx )
+		local name = objectData[ self ][ "level" ].getlocal( idx )
 		if name then
 			if not excludedLocalNames[ name ] then
 				return name
@@ -1590,7 +1587,7 @@ ModUtil.Metatables.Locals.Names = {
 	__next = function( self, idx )
 		if idx == nil then idx = 0 end
 		idx = idx + 1
-		local name = getObjectData( self, "level" ).getlocal( idx )
+		local name = objectData[ self ][ "level" ].getlocal( idx )
 		if name then
 			if not excludedLocalNames[ name ] then
 				return idx, name
@@ -1617,7 +1614,7 @@ end
 ModUtil.Metatables.Locals.Stacked = {
 	__index = function( self, name )
 		if excludedLocalNames[ name ] then return end
-		for _, level in pairs( getObjectData( self, "levels" ) ) do
+		for _, level in pairs( objectData[ self ][ "levels" ] ) do
 			local idx = 0
 			repeat
 				idx = idx + 1
@@ -1630,7 +1627,7 @@ ModUtil.Metatables.Locals.Stacked = {
 	end,
 	__newindex = function( self, name, value )
 		if excludedLocalNames[ name ] then return end
-		for _, level in pairs( getObjectData( self, "levels" ) ) do
+		for _, level in pairs( objectData[ self ][ "levels" ] ) do
 			local idx = 0
 			repeat
 				idx = idx + 1
@@ -1646,7 +1643,7 @@ ModUtil.Metatables.Locals.Stacked = {
 		return 0
 	end,
 	__next = function( self, name )
-		local levels = getObjectData( self, "levels" )
+		local levels = objectData[ self ][ "levels" ]
 		for _, level in pairs( levels ) do
 			local idx = name and 0 or -1
 			repeat
@@ -1695,37 +1692,37 @@ ModUtil.Metatables.Entangled.Union = {
 
 	__index = function( self, key )
 		local value
-		for t in pairs( getObjectData( self, "Members" ) ) do
+		for t in pairs( objectData[ self ][ "Members" ] ) do
 			value = t[ key ]
 			if value ~= nil then
 				return value
 			end
 		end
-		return getObjectData( self, "Reserve" )[ key ]
+		return objectData[ self ][ "Reserve" ][ key ]
 	end,
 	__newindex = function( self, key, value )
 		if value ~= nil then
-			getObjectData( self, "Keys" )[ key ] = true
+			objectData[ self ][ "Keys" ][ key ] = true
 		else
-			getObjectData( self, "Keys" )[ key ] = nil
+			objectData[ self ][ "Keys" ][ key ] = nil
 		end
 		local hit = false
-		for t in pairs( getObjectData( self, "Members" ) ) do
+		for t in pairs( objectData[ self ][ "Members" ] ) do
 			if t[ key ] ~= nil then
 				t[ key ] = value
 				hit = true
 			end
 		end
 		if hit then
-			getObjectData( self, "Reserve" )[ key ] = nil
+			objectData[ self ][ "Reserve" ][ key ] = nil
 		else
-			getObjectData( self, "Reserve" )[ key ] = value
+			objectData[ self ][ "Reserve" ][ key ] = value
 		end
 	end,
 	__len = function( self )
-		local m = #getObjectData( self, "Reserve" )
+		local m = #objectData[ self ][ "Reserve" ]
 		local n
-		for t in pairs( getObjectData( self, "Members" ) ) do
+		for t in pairs( objectData[ self ][ "Members" ] ) do
 			n = #t
 			if n > m then
 				m = n
@@ -1734,7 +1731,7 @@ ModUtil.Metatables.Entangled.Union = {
 		return m
 	end,
 	__next = function( self, key )
-		key = next( getObjectData( self, "Keys" ), key )
+		key = next( objectData[ self ][ "Keys" ], key )
 		return key, self[ key ]
 	end,
 	__inext = function( self, idx )
@@ -1764,9 +1761,9 @@ ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( _, ... )
 end )
 
 function ModUtil.Entangled.Union.Add( union, ... )
-	local members = getObjectData( union, "Members" )
-	local keys = getObjectData( union, "Keys" )
-	local reserve = getObjectData( union, "Reserve" )
+	local members = objectData[ union ][ "Members" ]
+	local keys = objectData[ union ][ "Keys" ]
+	local reserve = objectData[ union ][ "Reserve" ]
 	for t in pairs( toLookup{ ... } ) do
 		members[ t ] = true
 		for k in pairs( t ) do
@@ -1777,8 +1774,8 @@ function ModUtil.Entangled.Union.Add( union, ... )
 end
 
 function ModUtil.Entangled.Union.Sub( union, ... )
-	local members = getObjectData( union, "Members" )
-	local keys = getObjectData( union, "Keys" )
+	local members = objectData[ union ][ "Members" ]
+	local keys = objectData[ union ][ "Keys" ]
 	for t in pairs( toLookup{ ... } ) do
 		members[ t ] = nil
 	end
@@ -1793,13 +1790,13 @@ ModUtil.Metatables.Entangled.Map = {
 
 	Data = {
 		__index = function( self, key )
-			return getObjectData( self, "Map" )[ key ]
+			return objectData[ self ][ "Map" ][ key ]
 		end,
 		__newindex = function( self, key, value )
-			local data = getObjectData( self, "Map" )
+			local data = objectData[ self ][ "Map" ]
 			local prevValue = data[ key ]
 			data[ key ] = value
-			local preImage = getObjectData( self, "PreImage" )
+			local preImage = objectData[ self ][ "PreImage" ]
 			local prevKeys
 			if prevValue ~= nil then
 				prevKeys = preImage[ prevValue ]
@@ -1815,13 +1812,13 @@ ModUtil.Metatables.Entangled.Map = {
 			keys[ key ] = true
 		end,
 		__len = function( self )
-			return #getObjectData( self, "Map" )
+			return #objectData[ self ][ "Map" ]
 		end,
 		__next = function( self, key )
-			return next( getObjectData( self, "Map" ), key )
+			return next( objectData[ self ][ "Map" ], key )
 		end,
 		__inext = function( self, idx )
-			return inext( getObjectData( self, "Map" ), idx )
+			return inext( objectData[ self ][ "Map" ], idx )
 		end,
 		__pairs = function( self )
 			return qrawpairs( self )
@@ -1833,11 +1830,11 @@ ModUtil.Metatables.Entangled.Map = {
 
 	PreImage = {
 		__index = function( self, value )
-			return getObjectData( self, "PreImage" )[ value ]
+			return objectData[ self ][ "PreImage" ][ value ]
 		end,
 		__newindex = function( self, value, keys )
-			getObjectData( self, "PreImage" )[ value ] = keys
-			local data = getObjectData( self, "Map" )
+			objectData[ self ][ "PreImage" ][ value ] = keys
+			local data = objectData[ self ][ "Map" ]
 			for key in pairs( data ) do
 				data[ key ] = nil
 			end
@@ -1846,13 +1843,13 @@ ModUtil.Metatables.Entangled.Map = {
 			end
 		end,
 		__len = function( self )
-			return #getObjectData( self, "PreImage" )
+			return #objectData[ self ][ "PreImage" ]
 		end,
 		__next = function( self, key )
-			return next( getObjectData( self, "PreImage" ), key )
+			return next( objectData[ self ][ "PreImage" ], key )
 		end,
 		__inext = function( self, idx )
-			return inext( getObjectData( self, "PreImage" ), idx )
+			return inext( objectData[ self ][ "PreImage" ], idx )
 		end,
 		__pairs = function( self )
 			return qrawpairs( self )
@@ -1866,10 +1863,10 @@ ModUtil.Metatables.Entangled.Map = {
 
 		Data = {
 			__index = function( self, key )
-				return getObjectData( self, "Data" )[ key ]
+				return objectData[ self ][ "Data" ][ key ]
 			end,
 			__newindex = function( self, key, value )
-				local data, inverse = getObjectData( self, "Data" ), getObjectData( self, "Inverse" )
+				local data, inverse = objectData[ self ][ "Data" ], objectData[ self ][ "Inverse" ]
 				if value ~= nil then
 					local k = inverse[ value ]
 					if k ~= key  then
@@ -1890,13 +1887,13 @@ ModUtil.Metatables.Entangled.Map = {
 				end
 			end,
 			__len = function( self )
-				return #getObjectData( self, "Data" )
+				return #objectData[ self ][ "Data" ]
 			end,
 			__next = function( self, key )
-				return next( getObjectData( self, "Data" ), key )
+				return next( objectData[ self ][ "Data" ], key )
 			end,
 			__inext = function( self, idx )
-				return inext( getObjectData( self, "Data" ), idx )
+				return inext( objectData[ self ][ "Data" ], idx )
 			end,
 			__pairs = function( self )
 				return qrawpairs( self )
@@ -1908,10 +1905,10 @@ ModUtil.Metatables.Entangled.Map = {
 
 		Inverse = {
 			__index = function( self, value )
-				return getObjectData( self, "Inverse" )[ value ]
+				return objectData[ self ][ "Inverse" ][ value ]
 			end,
 			__newindex = function( self, value, key )
-				local data, inverse = getObjectData( self, "Data" ), getObjectData( self, "Inverse" )
+				local data, inverse = objectData[ self ][ "Data" ], objectData[ self ][ "Inverse" ]
 				if value ~= nil then
 					local k = inverse[ value ]
 					if k ~= key then
@@ -1932,13 +1929,13 @@ ModUtil.Metatables.Entangled.Map = {
 				end
 			end,
 			__len = function( self )
-				return #getObjectData( self, "Inverse" )
+				return #objectData[ self ][ "Inverse" ]
 			end,
 			__next = function( self, value )
-				return next( getObjectData( self, "Inverse" ), value )
+				return next( objectData[ self ][ "Inverse" ], value )
 			end,
 			__inext = function( self, idx )
-				return inext( getObjectData( self, "Inverse" ), idx )
+				return inext( objectData[ self ][ "Inverse" ], idx )
 			end,
 			__pairs = function( self )
 				return qrawpairs( self )
@@ -1994,14 +1991,14 @@ ModUtil.Metatables.Context = {
 		contextInfo.args = table.pack( ... )
 		contextInfo.arg = arg
 		contextInfo.data = { }
-		contextInfo.params = table.pack( getObjectData( self, "prepContext" )( contextInfo ) )
+		contextInfo.params = table.pack( objectData[ self ][ "prepContext" ]( contextInfo ) )
 		
 		threadEnvironments[ thread ] = contextInfo.env
 		contextInfo.response = table.pack( contextInfo.wrap( table.unpack( contextInfo.params ) ) )
 		threadEnvironments[ thread ] = penv
 
-		if getObjectData( self, "postCall" ) then
-			contextInfo.final = table.pack( getObjectData( self, "postCall" )( contextInfo ) )
+		if objectData[ self ][ "postCall" ] then
+			contextInfo.final = table.pack( objectData[ self ][ "postCall" ]( contextInfo ) )
 		end
 
 		threadContexts[ thread ] = contextInfo.parent
@@ -2092,15 +2089,12 @@ ModUtil.Node = ModUtil.Entangled.Map.Unique( )
 function ModUtil.Node.New( parent, key )
 	local nodeType = ModUtil.Node.Inverse[ key ]
 	if nodeType then
-		return ModUtil.Node.Data[ nodeType ].New( parent )
+		return key.New( parent )
 	end
 	local tbl = parent[ key ]
 	if tbl == nil then
 		tbl = { }
 		parent[ key ] = tbl
-	end
-	if type( tbl ) ~= "table" then
-		error( "key already occupied by a non-table", 2 )
 	end
 	return tbl
 end
@@ -2151,15 +2145,15 @@ ModUtil.Node.Data.UpValues = {
 -- Identifier System
 
 ModUtil.Identifiers = ModUtil.Entangled.Map.Unique( )
-setmetatable( getObjectData( ModUtil.Identifiers.Data, "Inverse" ), { __mode = "k" } )
-setmetatable( getObjectData( ModUtil.Identifiers.Inverse, "Data" ), { __mode = "v" } )
+setmetatable( objectData[ ModUtil.Identifiers.Data ][ "Inverse" ], { __mode = "k" } )
+setmetatable( objectData[ ModUtil.Identifiers.Inverse ][ "Data" ], { __mode = "v" } )
 
 ModUtil.Identifiers.Inverse._G = _ENV_ORIGINAL
 ModUtil.Identifiers.Inverse.ModUtil = ModUtil
 
 ModUtil.Mods = ModUtil.Entangled.Map.Unique( )
-setmetatable( getObjectData( ModUtil.Mods.Data, "Inverse" ), { __mode = "k" } )
-setmetatable( getObjectData( ModUtil.Mods.Inverse, "Data" ), { __mode = "v" } )
+setmetatable( objectData[ ModUtil.Mods.Data ][ "Inverse" ], { __mode = "k" } )
+setmetatable( objectData[ ModUtil.Mods.Inverse ][ "Data" ], { __mode = "v" } )
 ModUtil.Mods.Data.ModUtil = ModUtil
 
 -- Function Wrapping, Decoration, Overriding, Referral
@@ -2327,28 +2321,28 @@ end
 
 ModUtil.Metatables.ReferTable = {
 	__index = function( self, key )
-		return getObjectData( self, "obtain" )( )[ key ]
+		return objectData[ self ][ "obtain" ]( )[ key ]
 	end,
 	__newindex = function( self, key, value )
-		getObjectData( self, "obtain" )( )[ key ] = value
+		objectData[ self ][ "obtain" ]( )[ key ] = value
 	end,
 	__call = function( self, ... )
-		return getObjectData( self, "obtain" )( )( ... )
+		return objectData[ self ][ "obtain" ]( )( ... )
 	end,
 	__len = function( self )
-		return #getObjectData( self, "obtain" )( )
+		return #objectData[ self ][ "obtain" ]( )
 	end,
 	__next = function( self, key )
-		return next( getObjectData( self, "obtain" )( ), key )
+		return next( objectData[ self ][ "obtain" ]( ), key )
 	end,
 	__inext = function( self, idx )
-		return inext( getObjectData( self, "obtain" )( ), idx )
+		return inext( objectData[ self ][ "obtain" ]( ), idx )
 	end,
 	__pairs = function( self )
-		return pairs( getObjectData( self, "obtain" )( ) )
+		return pairs( objectData[ self ][ "obtain" ]( ) )
 	end,
 	__ipairs = function( self )
-		return ipairs( getObjectData( self, "obtain" )( ) )
+		return ipairs( objectData[ self ][ "obtain" ]( ) )
 	end
 }
 
@@ -2363,7 +2357,7 @@ ModUtil.Internal = ModUtil.Entangled.Union( )
 do
 	local ups = ModUtil.UpValues( function( )
 	return _ENV_ORIGINAL,
-		objectData, newObjectData, getObjectData,
+		objectData, newObjectData,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
 		threadContexts, threadEnvironments, getEnv, replaceGlobalEnvironment, 
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,

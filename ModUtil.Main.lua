@@ -233,6 +233,8 @@ ModUtil.Metatables.Mod = {
 	end
 }
 
+-- Load Trigger Queue
+
 local funcsToLoad = { }
 
 local function loadFuncs( triggerArgs )

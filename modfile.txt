@@ -6,5 +6,4 @@ Load Priority 0
 		Import "ModUtil.Extra.lua"
 		Import "ModUtil.Main.lua"
 		Import "ModUtil.Compat.lua"
-	To "Scripts/RoomManager.lua"
 		Import "ModUtil.Hades.lua"
