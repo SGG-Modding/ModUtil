@@ -7,6 +7,8 @@ Author: MagicGonads
 --]]
 ModUtil = {
 
+	ShowTableAddrs = false,
+	
 	Mod = { },
 	Args = { },
 	String = { },
@@ -34,7 +36,7 @@ local rawnext = rawnext
 
 local function pusherror( f, ... )
 	local ret = table.pack( pcall( f, ... ) )
-	if ret[ 1 ] then return table.unpack( ret, 2, ret.n ) end
+	if ret[ 1 ] then return table.rawunpack( ret, 2, ret.n ) end
 	error( ret[ 2 ], 3 )
 end
 
@@ -162,6 +164,7 @@ function setfenv( fn, env )
 end
 
 table.rawinsert = table.insert
+local rawinsert = table.rawinsert
 -- table.insert that respects metamethods
 function table.insert( list, pos, value )
 	local last = #list
@@ -216,42 +219,19 @@ do
 	end
 end
 
-local rawconcat = table.concat -- the builtin version is incomplete
+table.rawconcat = table.concat
+local rawconcat = table.rawconcat
 -- table.concat that respects metamethods and includes more values
 function table.concat( table, sep, i, j )
 	i = i or 1
 	j = j or table.n or #table
 	if i > j then return "" end
 	sep = sep or ""
-	s = tostring( table[ i ] )
-	for k = i + 1, j, 1 do
-		s = s .. sep .. tostring( table[ k ] )
+	local t = tostring( table[ i ] )
+	for k = i, j, 1 do
+		t[ k ] = tostring( table[ k ] )
 	end
-	return s
-end
--- table.concat that respects metamethods and includes more values, but ignores __tostring
-function table.qrawconcat( table, sep, i, j )
-	i = i or 1
-	j = j or table.n or #table
-	if i > j then return "" end
-	sep = sep or ""
-	s = rawtostring( table[ i ] )
-	for k = i + 1, j, 1 do
-		s = s .. sep .. rawtostring( table[ k ] )
-	end
-	return s
-end
--- table.concat that ignores metamethods, but includes more values
-function table.rawconcat( table, sep, i, j )
-	i = i or 1
-	j = j or rawget( table, "n" ) or rawlen(table)
-	if i > j then return "" end
-	sep = sep or ""
-	s = rawtostring( rawget( table, i ) )
-	for k = i + 1, j, 1 do
-		s = s .. sep .. rawtostring( rawget( table, k ) )
-	end
-	return s
+	return rawconcat( t, sep )
 end
 
 --[[
@@ -284,6 +264,10 @@ local passByValueTypes = toLookup{ "number", "boolean", "nil" }
 local callableCandidateTypes = toLookup{ "function", "table", "userdata" } -- string excluded because their references are managed
 local excludedFieldNames = toLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
 
+local floor = math.floor
+local function isInt( v )
+	return type( v ) == "number" and floor( v ) == v
+end
 
 -- Environment Manipulation
 
@@ -297,7 +281,7 @@ local function getEnv( thread )
 end
 
 local function replaceGlobalEnvironment( )
-	_ENV_REPLACED = debug.setmetatable( { }, {
+	_ENV_REPLACED = setmetatable( { _DEBUG_GLOBALS = _ENV_ORIGINAL }, {
 		__index = function( _, key )
 			return getEnv( )[ key ]
 		end,
@@ -453,17 +437,17 @@ function ModUtil.Args.Map( map, ... )
 	for i = 1, args.n do
 		 out[ i ] = map( args[ i ] )
 	end
-	return table.unpack( out )
+	return table.rawunpack( out )
 end
 
 function ModUtil.Args.Take( n, ... )
 	local args = table.pack( ... )
-	return table.unpack( args, 1, n )
+	return table.rawunpack( args, 1, n )
 end
 
 function ModUtil.Args.Drop( n, ... )
 	local args = table.pack( ... )
-	return table.unpack( args, n + 1, args.n )
+	return table.rawunpack( args, n + 1, args.n )
 end
 
 function ModUtil.Table.Map( tbl, map )
@@ -504,14 +488,7 @@ function ModUtil.Table.UnKeyed( tableArg )
 end
 
 function ModUtil.String.Join( sep, ... )
-	local out = { }
-	local args = table.pack( ... )
-	out[ 1 ] = args[ 1 ]
-	for i = 2, args.n do
-		table.insert( out, sep )
-		table.insert( out, args[ i ] )
-	end
-	return table.concat( out )
+	return table.rawconcat( table.pack( ... ), sep )
 end
 
 function ModUtil.String.Chunk( text, chunkSize, maxChunks )
@@ -539,26 +516,26 @@ end
 
 ModUtil.ToString = ModUtil.Callable.Set( { }, function( _, o )
 	local identifier = o ~= nil and ModUtil.Identifiers.Data[ o ]
-	identifier = identifier and identifier .. ":" or ""
+	identifier = identifier and identifier .. ": " or ""
 	return identifier .. ModUtil.ToString.Static( o )
 end )
 
 function ModUtil.ToString.Address( o )
 	local t = type( o )
-	if t == "string" or passByValueTypes[ t ] then return end
+	if t == "string" or passByValueTypes[ t ] then return nil end
 	return rawtostring( o ):match( ": 0*([0-9A-F]*)" )
 end
 
 function ModUtil.ToString.Static( o )
 	local t = type( o )
 	if t == "string" or passByValueTypes[ t ] then return tostring( o ) end
-	return tostring( o ):gsub( ": 0*", ":", 1 )
+	return tostring( o ):gsub( ": 0*", ": ", 1 )
 end
 
 function ModUtil.ToString.Value( o )
 	local t = type( o )
 	if t == 'string' then
-		return '"' .. o .. '"'
+		return "'" .. o:gsub("'","\'") .. "'"
 	end
 	if passByValueTypes[ t ] then
 		return tostring( o )
@@ -569,15 +546,14 @@ end
 function ModUtil.ToString.Key( o )
 	local t = type( o )
 	if t == 'string' then
-		if not excludedFieldNames[ o ] and o:gmatch( "^[a-zA-Z_][a-zA-Z0-9_]*$" ) then
+		if not excludedFieldNames[ o ] and o:match( "^[a-zA-Z_][a-zA-Z0-9_]*$" ) then
 			return o
 		end
-		return '"' .. o .. '"'
+		return "['" .. o:gsub("'","\'") .. "']"
 	end
-	if t == 'number' then
-	    return "#" .. tostring( o )
+	if passByValueTypes[ t ] then
+		return "[" .. tostring( o ) .. "]"
 	end
-	if passByValueTypes[ t ] then return tostring( o ) end
     return '<' .. ModUtil.ToString( o ) .. '>'
 end
 
@@ -585,91 +561,97 @@ function ModUtil.ToString.TableKeys( o )
 	if type( o ) == 'table' then
 		local out = { }
 		for k in pairs( o ) do
-			table.insert( out , ModUtil.ToString.Key( k ) )
-			table.insert( out , ', ' )
+			rawinsert( out , ModUtil.ToString.Key( k ) )
 		end
-		table.remove( out )
-		return table.concat( out )
+		return rawconcat( out, ',' )
 	end
 end
-
-function ModUtil.ToString.Shallow( o )
-	if type( o ) == "table" then
-		local out = { ModUtil.ToString.Value( o ), "( " }
-		for k, v in pairs( o ) do
-			table.insert( out, ModUtil.ToString.Key( k ) )
-			table.insert( out, ' = ' )
-			table.insert( out, ModUtil.ToString.Value( v ) )
-			table.insert( out , ", " )
-		end
-		if #out > 2 then table.remove( out ) end
-		return table.concat( out ) .. " )"
-	else
-		return ModUtil.ToString.Value( o )
-	end
-end
-
-ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, o, seen )
-	seen = seen or { }
-	if type( o ) == "table" and not seen[ o ] then
-		seen[ o ] = true
-		local out = { ModUtil.ToString.Value( o ), "( " }
-		for k, v in pairs( o ) do
-			table.insert( out, ModUtil.ToString.Key( k ) )
-			table.insert( out, ' = ' )
-			table.insert( out, ModUtil.ToString.Deep( v, seen ) )
-			table.insert( out , ", " )
-		end
-		if #out > 2 then table.remove( out ) end
-		return table.concat( out ) .. " )"
-	else
-		return ModUtil.ToString.Value( o )
-	end
-end )
 
 local function isNamespace( obj )
 	return obj == _ENV_ORIGINAL or obj == _ENV_REPLACED or obj == objectData or ModUtil.Mods.Inverse[ obj ]
 		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( objectData[ obj ][ "data" ] ) )
 end
 
-function ModUtil.ToString.Deep.NoNamespaces( o, seen )
-	seen = seen or { }
-	if type( o ) == "table" and not seen[ o ] and not isNamespace( o ) then
-		seen[ o ] = true
-		local out = { ModUtil.ToString.Value( o ), "( " }
-		for k, v in pairs( o ) do
-			if not isNamespace( v ) then
-				table.insert( out, ModUtil.ToString.Key( k ) )
-				table.insert( out, ' = ' )
-				table.insert( out, ModUtil.ToString.Deep.NoNamespaces( v, seen ) )
-				table.insert( out , ", " )
-			end
-		end
-		if #out > 2 then table.remove( out ) end
-		return table.concat( out ) .. " )"
-	else
-		return ModUtil.ToString.Value( o )
-	end
+local function isNotNamespace( obj )
+	return not isNamespace( obj )
 end
 
-function ModUtil.ToString.Deep.Namespaces( o, seen )
-	seen = seen or { }
-	if type( o ) == "table" and not seen[ o ] and isNamespace( o ) then
-		seen[ o ] = true
-		local out = { ModUtil.ToString.Value( o ), "( " }
+local repk, repv = ModUtil.ToString.Key, ModUtil.ToString.Value
+
+local function deepLoop( o, limit, depth, seen, cond )
+	if limit then
+		if limit < 0 then
+			return limit, "..."
+		end
+		limit = limit - 1
+	end
+	if depth then
+		if depth <= 0 then
+			return limit, repv( o )
+		end
+		depth = depth - 1
+	end
+	if type( o ) ~= "table" or (seen and seen[ o ]) or (cond and not cond( o )) then
+		return limit, repv( o )
+	end
+	if seen then seen[ o ] = true end
+	local m = getmetatable( o )
+	local h = ModUtil.ShowTableAddrs or ( m and m.__call ) or isNamespace( o )
+	h = ( h and repv( o ) or "" ) .. "{"
+	local out = { }
+	local i = 0
+	local broken = false
+	for j, v in ipairs( o ) do
+		if cond and not cond( v ) then break end
+		i = j
+		if limit and limit < 0 then
+			out[ i ] = "..."
+			broken = true
+			break
+		end
+		limit, v = deepLoop( v, limit, depth, seen, cond )
+		out[ i ] = v
+		
+	end
+	if not broken then
+		local j = i
 		for k, v in pairs( o ) do
-			if isNamespace( v ) then
-				table.insert( out, ModUtil.ToString.Key( k ) )
-				table.insert( out, ' = ' )
-				table.insert( out, ModUtil.ToString.Deep.Namespaces( v, seen ) )
-				table.insert( out , ", " )
+			if ( not cond or cond( v ) ) and ( not isInt( k ) or k < 1 or k > j ) then
+				i = i + 1
+				if limit and limit < 0 then
+					out[ i ] = '...'
+					break
+				end
+				limit, v = deepLoop( v, limit, depth, seen, cond )
+				out[ i ] = repk( k ) .. ' = ' .. v
 			end
 		end
-		if #out > 2 then table.remove( out ) end
-		return table.concat( out ) .. " )"
-	else
-		return ModUtil.ToString.Value( o )
 	end
+	if i == 0 then return limit, h .. "}" end
+	out[ 1 ] = h .. out[ 1 ]
+	out[ i ] = out[ i ] .. "}"
+	return limit, rawconcat( out, ", " )
+end
+
+function ModUtil.ToString.Shallow( object, limit )
+	local _, out = deepLoop( object, limit, 1 )
+	return out
+end
+
+ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, object, limit, depth )
+	local _, out = deepLoop( object, limit, depth, { } )
+	return out
+end )
+
+
+function ModUtil.ToString.Deep.NoNamespaces( object, limit, depth )
+	local _, out = deepLoop( object, limit, depth, { }, isNotNamespace )
+	return out
+end
+
+function ModUtil.ToString.Deep.Namespaces( object, limit, depth )
+	local _, out = deepLoop( object, limit, depth, { }, isNamespace )
+	return out
 end
 
 -- Print
@@ -2418,7 +2400,7 @@ ModUtil.Internal = ModUtil.Entangled.Union( )
 do
 	local ups = ModUtil.UpValues( function( )
 	return _ENV_ORIGINAL,
-		objectData, newObjectData, rawconcat,
+		objectData, newObjectData, isInt, deepLoop, repk, repv,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
 		threadContexts, threadEnvironments, getEnv, replaceGlobalEnvironment, 
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
