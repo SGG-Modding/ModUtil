@@ -106,6 +106,22 @@ function qrawipairs( t )
 	end, t, nil
 end
 
+-- ignore __tostring (not thread safe?)
+function rawtostring(t)
+	-- https://stackoverflow.com/a/43286713
+	local m = getmetatable( t )
+	local f
+	if m then
+		f = m.__tostring
+		m.__tostring = nil
+	end
+	local s = tostring( t )
+	if m then
+		m.__tostring = f
+	end
+	return s
+end
+
 function getfenv( fn )
 	if type( fn ) ~= "function" then
 		fn = debug.getinfo( ( fn or 1 ) + 1, "f" ).func
@@ -196,11 +212,11 @@ end
 
 --- bind to locals to minimise environment recursion and improve speed
 local
-	rawset, rawlen, ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine,
-		rawpairs, rawipairs, qrawpairs, qrawipairs, tostring, getfenv, setfenv
+	rawset, rawlen, ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
+		rawpairs, rawipairs, qrawpairs, qrawipairs, rawtostring, tostring, getfenv, setfenv
 	=
-	rawset, rawlen, ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine,
-		rawpairs, rawipairs, qrawpairs, qrawipairs, tostring, getfenv, setfenv
+	rawset, rawlen, ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
+		rawpairs, rawipairs, qrawpairs, qrawipairs, rawtostring, tostring, getfenv, setfenv
 
 --[[
 	local version of toLookup as to not depend on Main.lua
@@ -481,7 +497,7 @@ end )
 function ModUtil.ToString.Address( o )
 	local t = type( o )
 	if t == "string" or passByValueTypes[ t ] then return end
-	return tostring( o ):match( ": 0*([0-9A-F]*)" )
+	return rawtostring( o ):match( ": 0*([0-9A-F]*)" )
 end
 
 function ModUtil.ToString.Static( o )
@@ -568,9 +584,7 @@ local function isNamespace( obj )
 end
 
 function ModUtil.ToString.Deep.NoNamespaces( o, seen )
-	if not seen then
-		seen = { }
-	end
+	seen = seen or { }
 	if type( o ) == "table" and not seen[ o ] and not isNamespace( o ) then
 		seen[ o ] = true
 		local out = { ModUtil.ToString.Value( o ), "( " }
@@ -590,9 +604,7 @@ function ModUtil.ToString.Deep.NoNamespaces( o, seen )
 end
 
 function ModUtil.ToString.Deep.Namespaces( o, seen )
-	if not seen then
-		seen = { }
-	end
+	seen = seen or { }
 	if type( o ) == "table" and not seen[ o ] and isNamespace( o ) then
 		seen[ o ] = true
 		local out = { ModUtil.ToString.Value( o ), "( " }
