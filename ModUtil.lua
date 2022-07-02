@@ -57,7 +57,7 @@ function qrawpairs( t )
     return next, t, nil
 end
 
-local rawget = rawget
+local rawget, rawset, rawlen = rawget, rawset, rawlen
 
 -- doesn't invoke __index just like rawnext
 function rawinext( t, i )
@@ -203,19 +203,68 @@ function table.remove( list, pos )
 	return value
 end
 
+table.rawunpack = table.unpack
+-- table.unpack that respects metamethods
+do
+	local function unpack( t, m, i, ... )
+		if i < m then return ... end
+		return unpack( t, m, i - 1, t[ i ], ... )
+	end
+	
+	function table.unpack( list, i, j )
+		return unpack( list, i or 1, j or list.n or #list )
+	end
+end
+
+local rawconcat = table.concat -- the builtin version is incomplete
+-- table.concat that respects metamethods and includes more values
+function table.concat( table, sep, i, j )
+	i = i or 1
+	j = j or table.n or #table
+	if i > j then return "" end
+	sep = sep or ""
+	s = tostring( table[ i ] )
+	for k = i + 1, j, 1 do
+		s = s .. sep .. tostring( table[ k ] )
+	end
+	return s
+end
+-- table.concat that respects metamethods and includes more values, but ignores __tostring
+function table.qrawconcat( table, sep, i, j )
+	i = i or 1
+	j = j or table.n or #table
+	if i > j then return "" end
+	sep = sep or ""
+	s = rawtostring( table[ i ] )
+	for k = i + 1, j, 1 do
+		s = s .. sep .. rawtostring( table[ k ] )
+	end
+	return s
+end
+-- table.concat that ignores metamethods, but includes more values
+function table.rawconcat( table, sep, i, j )
+	i = i or 1
+	j = j or rawget( table, "n" ) or rawlen(table)
+	if i > j then return "" end
+	sep = sep or ""
+	s = rawtostring( rawget( table, i ) )
+	for k = i + 1, j, 1 do
+		s = s .. sep .. rawtostring( rawget( table, k ) )
+	end
+	return s
+end
+
 --[[
 	NOTE: Other table functions that need to get updated to respect metamethods
-	- table.unpack
-	- table.concat
 	- table.sort
 --]]
 
 --- bind to locals to minimise environment recursion and improve speed
 local
-	rawset, rawlen, ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
+	ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
 		rawpairs, rawipairs, qrawpairs, qrawipairs, rawtostring, tostring, getfenv, setfenv
 	=
-	rawset, rawlen, ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
+	ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
 		rawpairs, rawipairs, qrawpairs, qrawipairs, rawtostring, tostring, getfenv, setfenv
 
 --[[
@@ -2369,7 +2418,7 @@ ModUtil.Internal = ModUtil.Entangled.Union( )
 do
 	local ups = ModUtil.UpValues( function( )
 	return _ENV_ORIGINAL,
-		objectData, newObjectData,
+		objectData, newObjectData, rawconcat,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
 		threadContexts, threadEnvironments, getEnv, replaceGlobalEnvironment, 
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
