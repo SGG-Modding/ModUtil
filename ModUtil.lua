@@ -6,9 +6,6 @@ Author: MagicGonads
 
 --]]
 ModUtil = {
-
-	ShowTableAddrs = false,
-	
 	Mod = { },
 	Args = { },
 	String = { },
@@ -576,6 +573,8 @@ local function isNotNamespace( obj )
 	return not isNamespace( obj )
 end
 
+local showTableAddrs = false
+
 local repk, repv = ModUtil.ToString.Key, ModUtil.ToString.Value
 
 local function deepLoop( o, limit, depth, seen, cond )
@@ -596,7 +595,7 @@ local function deepLoop( o, limit, depth, seen, cond )
 	end
 	if seen then seen[ o ] = true end
 	local m = getmetatable( o )
-	local h = ModUtil.ShowTableAddrs or ( m and m.__call ) or isNamespace( o )
+	local h = showTableAddrs or ( m and m.__call ) or isNamespace( o )
 	h = ( h and repv( o ) or "" ) .. "{"
 	local out = { }
 	local i = 0
@@ -2400,7 +2399,7 @@ ModUtil.Internal = ModUtil.Entangled.Union( )
 do
 	local ups = ModUtil.UpValues( function( )
 	return _ENV_ORIGINAL,
-		objectData, newObjectData, isInt, deepLoop, repk, repv,
+		objectData, newObjectData, isInt, deepLoop, repk, repv, showTableAddrs,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
 		threadContexts, threadEnvironments, getEnv, replaceGlobalEnvironment, 
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
