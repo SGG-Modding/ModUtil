@@ -511,6 +511,19 @@ end
 
 -- String Representations
 
+local escapeCharacters = {
+	['\\'] = '\\\\', ["'"] =  "\'", ['"'] = '\"',
+	['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t',
+	['\a'] = '\\a', ['\b'] = '\\b', ['\f'] = '\\f'
+}
+
+local function literalString( str )
+	for chr, esc in pairs( escapeCharacters ) do
+		str = str:gsub( chr, esc )
+	end
+	return "'" .. str .. "'"
+end
+
 ModUtil.ToString = ModUtil.Callable.Set( { }, function( _, o )
 	local identifier = o ~= nil and ModUtil.Identifiers.Data[ o ]
 	identifier = identifier and identifier .. ": " or ""
@@ -532,7 +545,7 @@ end
 function ModUtil.ToString.Value( o )
 	local t = type( o )
 	if t == 'string' then
-		return "'" .. o:gsub("'","\'") .. "'"
+		return literalString( o )
 	end
 	if passByValueTypes[ t ] then
 		return tostring( o )
@@ -546,7 +559,7 @@ function ModUtil.ToString.Key( o )
 		if not excludedFieldNames[ o ] and o:match( "^[a-zA-Z_][a-zA-Z0-9_]*$" ) then
 			return o
 		end
-		return "['" .. o:gsub("'","\'") .. "']"
+		return '[' .. literalString( o ) .. ']'
 	end
 	if passByValueTypes[ t ] then
 		return "[" .. tostring( o ) .. "]"
@@ -2404,7 +2417,7 @@ do
 		threadContexts, threadEnvironments, getEnv, replaceGlobalEnvironment, 
 		pusherror, getname, toLookup, wrapDecorator, isNamespace,
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
-		passByValueTypes, callableCandidateTypes, excludedFieldNames
+		passByValueTypes, callableCandidateTypes, excludedFieldNames, escapeCharacters, literalString
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
 end
