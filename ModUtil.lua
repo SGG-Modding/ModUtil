@@ -590,18 +590,20 @@ local showTableAddrs = false
 
 local repk, repv = ModUtil.ToString.Key, ModUtil.ToString.Value
 
-local function deepLoop( o, limit, depth, seen, cond )
-	if limit then
-		if limit < 0 then
-			return limit, "..."
-		end
-		limit = limit - 1
-	end
-	if depth then
-		if depth <= 0 then
+local function deepLoop( o, limit, dlimit, indent, seen, cond, depth )
+	depth = depth or 0
+	if dlimit then
+		if dlimit <= depth then
 			return limit, repv( o )
 		end
-		depth = depth - 1
+	end
+	local _indent = ''
+	if indent then
+		_indent = { }
+		for i = 1, depth, 1 do
+			_indent[ i ] = indent
+		end
+		_indent = table.rawconcat( _indent )
 	end
 	if type( o ) ~= "table" or (seen and seen[ o ]) or (cond and not cond( o )) then
 		return limit, repv( o )
@@ -609,60 +611,67 @@ local function deepLoop( o, limit, depth, seen, cond )
 	if seen then seen[ o ] = true end
 	local m = getmetatable( o )
 	local h = showTableAddrs or ( m and m.__call ) or isNamespace( o )
-	h = ( h and repv( o ) or "" ) .. "{"
+	h = ( h and repv( o ) or "" ) .. '{' .. ( indent and '\n' .. _indent .. indent or '' )
 	local out = { }
 	local i = 0
 	local broken = false
+	depth = depth + 1
 	for j, v in ipairs( o ) do
 		if cond and not cond( v ) then break end
 		i = j
-		if limit and limit < 0 then
+		if limit and limit <= 0 then
 			out[ i ] = "..."
 			broken = true
 			break
 		end
-		limit, v = deepLoop( v, limit, depth, seen, cond )
+		if limit then
+			limit = limit - 1
+		end
+		limit, v = deepLoop( v, limit, dlimit, indent, seen, cond, depth )
 		out[ i ] = v
-		
 	end
 	if not broken then
 		local j = i
 		for k, v in pairs( o ) do
 			if ( not cond or cond( v ) ) and ( not isInt( k ) or k < 1 or k > j ) then
 				i = i + 1
-				if limit and limit < 0 then
+				if limit and limit <= 0 then
 					out[ i ] = '...'
 					break
 				end
-				limit, v = deepLoop( v, limit, depth, seen, cond )
+				if limit then
+					limit = limit - 1
+				end
+				limit, v = deepLoop( v, limit, dlimit, indent, seen, cond, depth )
 				out[ i ] = repk( k ) .. ' = ' .. v
 			end
 		end
 	end
-	if i == 0 then return limit, h .. "}" end
+	local _end = ( indent and '\n' .. _indent or '' ) .. '}'
+	if i == 0 then return limit, h .. _end end
 	out[ 1 ] = h .. out[ 1 ]
-	out[ i ] = out[ i ] .. "}"
-	return limit, rawconcat( out, ", " )
+	out[ i ] = out[ i ] .. _end
+	return limit, rawconcat( out, ',' .. ( indent and '\n' .. _indent .. indent or ' ' ) )
 end
 
-function ModUtil.ToString.Shallow( object, limit )
-	local _, out = deepLoop( object, limit, 1 )
+function ModUtil.ToString.Shallow( object, limit, indent )
+	local _, out = deepLoop( object, limit, 1, indent )
 	return out
 end
 
-ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, object, limit, depth )
-	local _, out = deepLoop( object, limit, depth, { } )
+ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, object, limit, depth, indent )
+	local _, out = deepLoop( object, limit, depth, indent, { } )
 	return out
 end )
 
 
-function ModUtil.ToString.Deep.NoNamespaces( object, limit, depth )
-	local _, out = deepLoop( object, limit, depth, { }, isNotNamespace )
+function ModUtil.ToString.Deep.NoNamespaces( object, limit, depth, indent )
+	local _, out = deepLoop( object, limit, depth, indent, { }, isNotNamespace )
 	return out
 end
 
-function ModUtil.ToString.Deep.Namespaces( object, limit, depth )
-	local _, out = deepLoop( object, limit, depth, { }, isNamespace )
+function ModUtil.ToString.Deep.Namespaces( object, limit, depth, indent )
+	local _, out = deepLoop( object, limit, depth, indent, { }, isNamespace )
 	return out
 end
 
@@ -765,8 +774,8 @@ function ModUtil.DebugCall( f, ... )
 	return xpcall( f, function( err )
 		ModUtil.Print( err )
 		ModUtil.Print.DebugInfo( 2 )
-		ModUtil.Print.Namespaces( 2 )
-		ModUtil.Print.Variables( 2 )
+		--ModUtil.Print.Namespaces( 2 )
+		--ModUtil.Print.Variables( 2 )
 		ModUtil.Print.Traceback( 2 )
     end, ... )
 end
