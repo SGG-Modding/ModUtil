@@ -224,7 +224,7 @@ function table.concat( table, sep, i, j )
 	j = j or table.n or #table
 	if i > j then return "" end
 	sep = sep or ""
-	local t = tostring( table[ i ] )
+	local t = { }
 	for k = i, j, 1 do
 		t[ k ] = tostring( table[ k ] )
 	end
