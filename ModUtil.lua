@@ -216,19 +216,23 @@ do
 	end
 end
 
-table.rawconcat = table.concat
-local rawconcat = table.rawconcat
+local rawconcat = table.concat
+table.rawconcat = rawconcat
 -- table.concat that respects metamethods and includes more values
-function table.concat( table, sep, i, j )
-	i = i or 1
-	j = j or table.n or #table
-	if i > j then return "" end
-	sep = sep or ""
-	local t = { }
-	for k = i, j, 1 do
-		t[ k ] = tostring( table[ k ] )
+do
+	local wt = setmetatable( { }, { __mode = 'v' } )
+	function table.concat( tbl, sep, i, j )
+		i = i or 1
+		j = j or tbl.n or #tbl
+		if i > j then return "" end
+		sep = sep or ""
+		local t = rawnext( wt ) or { }
+		rawset( wt, 1, t )
+		for k = i, j, 1 do
+			rawset( t, k, tostring( tbl[ k ] ) )
+		end
+		return rawconcat( t, sep, i, j )
 	end
-	return rawconcat( t, sep )
 end
 
 --[[
@@ -470,19 +474,14 @@ function ModUtil.Table.Replace( target, data )
 	end
 end
 
-function ModUtil.Table.UnKeyed( tableArg )
-	local lk = 0
-	for k in pairs( tableArg ) do
-		if type( k ) ~= "number" then
-			return false
-		end
-		if lk + 1 ~= k then
-			return false
-		end
-		lk = k
+function ModUtil.Table.UnKeyed( tbl )
+	local n = #tbl
+	for k in pairs( tbl ) do
+		if type( k ) ~= "number" or k > n or k < 1 or k ~= math.floor(k) then return false end
 	end
 	return true
 end
+
 
 function ModUtil.String.Join( sep, ... )
 	return table.rawconcat( table.pack( ... ), sep )
@@ -950,6 +949,18 @@ function ModUtil.Table.Merge( inTable, setTable )
 		local inVal = inTable[ setKey ]
 		if type( setVal ) == "table" and type( inVal ) == "table" then
 			ModUtil.Table.Merge( inVal, setVal )
+		else
+			inTable[ setKey ] = setVal
+		end
+	end
+	return inTable
+end
+
+function ModUtil.Table.MergeKeyed( inTable, setTable )
+	for setKey, setVal in pairs( setTable ) do
+		local inVal = inTable[ setKey ]
+		if type( setVal ) == "table" and type( inVal ) == "table" and not ModUtil.Table.UnKeyed( setVal ) then
+			ModUtil.Table.MergeKeyed( inVal, setVal )
 		else
 			inTable[ setKey ] = setVal
 		end
