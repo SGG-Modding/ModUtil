@@ -959,8 +959,12 @@ end
 function ModUtil.Table.MergeKeyed( inTable, setTable )
 	for setKey, setVal in pairs( setTable ) do
 		local inVal = inTable[ setKey ]
-		if type( setVal ) == "table" and type( inVal ) == "table" and not ModUtil.Table.UnKeyed( setVal ) then
-			ModUtil.Table.MergeKeyed( inVal, setVal )
+		if type( setVal ) == "table" and type( inVal ) == "table" then
+			if ModUtil.Table.UnKeyed( setVal ) and ModUtil.Table.UnKeyed( inVal ) then
+				ModUtil.Table.Replace( inVal, setVal )
+			else
+				ModUtil.Table.MergeKeyed( inVal, setVal )
+			end
 		else
 			inTable[ setKey ] = setVal
 		end
