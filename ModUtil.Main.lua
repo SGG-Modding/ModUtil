@@ -73,7 +73,7 @@ function ModUtil.Mod.Register( first, second )
 	end
 	local mod = { }
 	parent[ modName ] = mod
-	local path = ModUtil.Mods.Inverse[ parent ]
+	local path = ModUtil.Identifiers.Data[ parent ]
 	if path ~= nil then
 		path = path .. '.'
 	else
