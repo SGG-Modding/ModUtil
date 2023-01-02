@@ -60,7 +60,7 @@ end
 	modName - the name of the mod
 	parent	- the parent mod, or nil if this mod stands alone
 --]]
-function ModUtil.Mod.Register( first, second )
+function ModUtil.Mod.Register( first, second, meta )
 	local modName, parent
 	if type( first ) == "string" then
 		modName, parent = first, second
@@ -71,7 +71,7 @@ function ModUtil.Mod.Register( first, second )
 		parent = _G
 		SaveIgnores[ modName ] = true
 	end
-	local mod = { }
+	local mod = parent[ modName ] or { }
 	parent[ modName ] = mod
 	local path = ModUtil.Identifiers.Data[ parent ]
 	if path ~= nil then
@@ -82,6 +82,9 @@ function ModUtil.Mod.Register( first, second )
 	path = path .. modName
 	ModUtil.Mods.Data[ path ] = mod
 	ModUtil.Identifiers.Inverse[ path ] = mod
+	if meta == false then
+		return mod
+	end
 	return setmetatable( mod, ModUtil.Metatables.Mod )
 end
 
