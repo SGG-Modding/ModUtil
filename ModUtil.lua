@@ -212,7 +212,7 @@ do
 	end
 	
 	function table.unpack( list, i, j )
-		return unpack( list, i or 1, j or list.n or #list )
+		return unpack( list, i or 1, j or list.n or #list or 1 )
 	end
 end
 
@@ -449,6 +449,11 @@ end
 function ModUtil.Args.Drop( n, ... )
 	local args = table.pack( ... )
 	return table.rawunpack( args, n + 1, args.n )
+end
+
+function ModUtil.Args.Join( args, ... )
+	local args = ModUtil.Array.Join( args, table.pack( ... ) )
+	return table.rawunpack( args )
 end
 
 function ModUtil.Table.Map( tbl, map )
