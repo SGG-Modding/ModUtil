@@ -124,7 +124,7 @@ local function modDataPlain( obj, key, value, level )
 			if getmetatable( value ) then
 				local state
 				state, value = pcall( function( ) return objectData[ value ] end )
-				if not state then
+				if not state or type( value ) ~= "table" then
 					error( "saved data tables cannot have values with metatables", level )
 				end
 			end
