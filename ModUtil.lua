@@ -2134,8 +2134,9 @@ end )
 ModUtil.Context.Call = ModUtil.Context(
 	function( info )
 		info.env = setmetatable( { }, { __index = info.penv } )
+		return table.unpack( info.args )
 	end,
-	function ( info )
+	function( info )
 		local thread = coroutine.running( )
 		local penv = threadEnvironments[ thread ]
 		threadEnvironments[ thread ] = info.env
@@ -2154,7 +2155,7 @@ ModUtil.Context.Wrap.Static = ModUtil.Context(
 	function( info )
 		info.env = setmetatable( { }, { __index = info.penv } )
 	end,
-	function ( info )
+	function( info )
 		return ModUtil.Wrap( info.arg, function( base, ... ) 
 			local thread = coroutine.running( )
 			local penv = threadEnvironments[ thread ]
