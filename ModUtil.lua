@@ -15,16 +15,15 @@ ModUtil = {
 	IndexArray = { },
 	Entangled = { },
 	Metatables = { }
-
 }
 
 -- Extended Global Utilities (assuming lua 5.2)
 
 local error, pcall, xpcall = error, pcall, xpcall
 
-local debug, type, table = debug, type, table
+local debug, type, table, unpack = debug, type, table, table.unpack
 local function getname( )
-	return debug.getinfo( 2, "n" ).name
+	return debug.getinfo( 2, "n" ).name  or "?"
 end
 
 -- doesn't invoke __index
@@ -33,14 +32,14 @@ local rawnext = rawnext
 
 local function pusherror( f, ... )
 	local ret = table.pack( pcall( f, ... ) )
-	if ret[ 1 ] then return table.rawunpack( ret, 2, ret.n ) end
+	if ret[ 1 ] then return unpack( ret, 2, ret.n ) end
 	error( ret[ 2 ], 3 )
 end
 
 -- invokes __next
 function next( t, k )
 	local m = debug.getmetatable( t )
-	local f = m and m.__next or rawnext
+	local f = m and rawget(m,'__next') or rawnext
 	return pusherror( f, t, k )
 end
 
@@ -85,7 +84,7 @@ local rawinext = rawinext
 -- invokes __inext
 function inext( t, i )
 	local m = debug.getmetatable( t )
-	local f = m and m.__inext or rawinext
+	local f = m and rawget(m,'__inext') or rawinext
 	return pusherror( f, t, i )
 end
 
@@ -189,7 +188,7 @@ function table.remove( list, pos )
 	if pos == nil then
 		pos = last
 	end
-	if pos < 1 or pos > last then
+	if pos < 0 or pos > last + 1 then
 		error( "bad argument #2 to '" .. getname( ) .. "' (position out of bounds)", 2 )
 	end
 	local value = list[ pos ]
@@ -203,16 +202,16 @@ function table.remove( list, pos )
 	return value
 end
 
-table.rawunpack = table.unpack
+table.rawunpack = unpack
 -- table.unpack that respects metamethods
 do
-	local function unpack( t, m, i, ... )
+	local function _unpack( t, m, i, ... )
 		if i < m then return ... end
-		return unpack( t, m, i - 1, t[ i ], ... )
+		return _unpack( t, m, i - 1, t[ i ], ... )
 	end
 	
 	function table.unpack( list, i, j )
-		return unpack( list, i or 1, j or list.n or #list or 1 )
+		return _unpack( list, i or 1, j or list.n or #list or 1 )
 	end
 end
 

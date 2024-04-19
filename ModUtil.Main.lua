@@ -5,10 +5,18 @@
 
 -- Management
 
-SaveIgnores[ "ModUtil" ] = true
+local function setSaveIgnore(key, ignore)
+	if SaveIgnores then
+		SaveIgnores[key] = ignore
+	elseif GlobalSaveWhitelist then
+		GlobalSaveWhitelist[key] = not ignore
+	end
+end
+
+setSaveIgnore( "ModUtil", true )
 
 rawset( _ENV, "GLOBALS", ModUtil.Internal._G )
-SaveIgnores[ "GLOBALS" ] = true
+setSaveIgnore( "GLOBALS", true )
 
 -- Global Interception
 
@@ -69,7 +77,7 @@ function ModUtil.Mod.Register( first, second, meta )
 	end
 	if not parent then
 		parent = _G
-		SaveIgnores[ modName ] = true
+		setSaveIgnore( modName, true )
 	end
 	local mod = parent[ modName ] or { }
 	parent[ modName ] = mod
@@ -175,7 +183,7 @@ end
 ModUtil.Mod.Data = setmetatable( { }, {
 	__call = function( _, mod )
 		ModData = ModData or { }
-		SaveIgnores["ModData"] = false
+		setSaveIgnore( "ModData", false )
 		local key = ModUtil.Mods.Inverse[ mod ]
 		local data = ModData[ key ]
 		if not data then
@@ -275,7 +283,7 @@ end
 
 do
 	local ups = ModUtil.UpValues( function( )
-		return _G, funcsToLoad, loadFuncs, isPath, routeKey, callableCandidateTypes,
+		return _G, funcsToLoad, loadFuncs, isPath, routeKey, callableCandidateTypes, setSaveIgnore,
 			objectData, passByValueTypes, modDataKey, modDataProxy, modDataPlain, relativeTable
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
