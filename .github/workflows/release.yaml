@@ -1,0 +1,105 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag / Version number (leave empty for dry-run)"
+        required: false
+
+env:
+  changelog: CHANGELOG.md
+  thunderstore-config: thunderstore.toml
+  build-dir: build/
+  artifacts-content-type: application/zip
+
+jobs:
+  tag-and-release:
+    name: Rotate version, tag, and create release
+    runs-on: ubuntu-latest
+    if: github.event.inputs.tag
+    outputs:
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    steps:
+      - name: Check input tag format
+        run: |
+          echo "${{ github.event.inputs.tag }}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'
+
+      - name: Checkout files
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+
+      - name: Rotate unreleased section in changelog
+        uses: thomaseizinger/keep-a-changelog-new-release@77ac767b2f7f6edf2ee72ab3364ed26667086f96
+        with:
+          tag: ${{ github.event.inputs.tag }}
+
+      - name: Rotate version in Thunderstore CLI config
+        run: |
+          sed -i 's/versionNumber = ".*"/versionNumber = "${{ github.event.inputs.tag }}"/' ${{ env.thunderstore-config }}
+
+      - name: Push updated files to repository and tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.changelog }} ${{ env.thunderstore-config }}
+          git commit --message "Release ${{ github.event.inputs.tag }}"
+          git tag ${{ github.event.inputs.tag }}
+          git push origin HEAD:${{ github.ref_name }} --tags
+
+      - name: Create release
+        id: release
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
+        with:
+          release_name: ${{ github.event.inputs.tag }}
+          tag_name: ${{ github.event.inputs.tag }}
+          commitish: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-publish-package:
+    name: Build and publish package
+    needs: tag-and-release
+    if: always() && (needs.tag-and-release.result == 'success' || needs.tag-and-release.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+        with:
+          ref: ${{ github.event.inputs.tag || github.sha }}
+          lfs: true
+
+      - name: Install Thunderstore CLI
+        run: dotnet tool install -g tcli
+
+      - name: Build package
+        if: ${{ !needs.tag-and-release.outputs.upload_url }}
+        run: tcli build
+
+      - name: Publish package
+        if: needs.tag-and-release.outputs.upload_url
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
+        run: tcli publish
+
+      - name: Retrieve package name
+        run: |
+          ARTIFACTS_NAME=$(find "${{ env.build-dir }}" -type f -printf "%f\n")
+          echo "artifacts-name=${ARTIFACTS_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload artifacts to workflow
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: ${{ env.artifacts-name }}
+          path: ${{ env.build-dir }}/${{ env.artifacts-name }}
+          retention-days: 1
+
+      - name: Upload artifacts to release
+        if: needs.tag-and-release.outputs.upload_url
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5
+        with:
+          upload_url: ${{ needs.tag-and-release.outputs.upload_url }}
+          asset_path: ${{ env.build-dir }}/${{ env.artifacts-name }}
+          asset_name: ${{ env.artifacts-name }}
+          asset_content_type: ${{ env.artifacts-content-type }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
