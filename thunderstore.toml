@@ -4,7 +4,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "SGG_Modding"
 name = "ModUtil"
-versionNumber = "2.10.0"
+versionNumber = "2.10.1"
 description = "Utility mod for mod interactions within lua for for SGG's games"
 websiteUrl = "https://github.com/SGG-Modding/ModUtil"
 containsNsfwContent = false
