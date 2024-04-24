@@ -10,7 +10,6 @@ websiteUrl = "https://github.com/SGG-Modding/ModUtil"
 containsNsfwContent = false
 
 [package.dependencies]
-SGG_Modding-ModImporter = "1.6.0"
 
 [build]
 icon = "./icon.png"
