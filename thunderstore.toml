@@ -4,12 +4,14 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "SGG_Modding"
 name = "ModUtil"
-versionNumber = "2.10.1"
-description = "Utility mod for mod interactions within lua for for SGG's games"
+versionNumber = "3.0.0"
+description = "Utility mod for mod interactions within lua for SGG's games"
 websiteUrl = "https://github.com/SGG-Modding/ModUtil"
 containsNsfwContent = false
 
 [package.dependencies]
+Hell2Modding-Hell2Modding = "1.0.21"
+SGG_Modding-DemonDaemon = "1.0.0"
 
 [build]
 icon = "./icon.png"

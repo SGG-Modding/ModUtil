@@ -1,93 +1,7 @@
+---@meta _
+---@diagnostic disable
+
 ModUtil.Mod.Register( "Hades", ModUtil )
-
-ModUtil.Table.Merge( ModUtil.Hades, {
-	PrintStackHeight = 10,
-	PrintStackCapacity = 80
-} )
-
--- Menu Handling
-
-local menuScreens = { }
-local closeFuncs = { }
-
---[[
-	Tell each screen anchor that they have been forced closed by the game
---]]
-local function forceClosed( triggerArgs )
-	for _, v in pairs( closeFuncs ) do
-		v( nil, nil, triggerArgs )
-	end
-	closeFuncs = { }
-	menuScreens = { }
-end
-OnAnyLoad{ function( triggerArgs ) forceClosed( triggerArgs ) end }
-
-function ModUtil.Hades.CloseMenu( screen, button )
-	CloseScreen(GetAllIds(screen.Components), 0.1)
-	menuScreens[screen.Name] = nil
-	screen.KeepOpen = false
-	OnScreenClosed({ Flag = screen.Name })
-	if TableLength(menuScreens) == 0 then
-		SetConfigOption({ Name = "FreeFormSelectWrapY", Value = false })
-		SetConfigOption({ Name = "UseOcclusion", Value = true })
-		UnfreezePlayerUnit()
-		DisableShopGamepadCursor()
-	end
-	if closeFuncs[screen.Name] then
-		closeFuncs[screen.Name]( screen, button )
-		closeFuncs[screen.Name]=nil
-	end
-end
-
-function ModUtil.Hades.OpenMenu( group, closeFunc, openFunc )
-	if menuScreens[group] then
-		ModUtil.Hades.CloseMenu(menuScreens[group])
-	end
-	if closeFunc then closeFuncs[group]=closeFunc end
-	
-	local screen = { Name = group, Components = {} }
-	local components = screen.Components
-	menuScreens[group] = screen
-	
-	OnScreenOpened({ Flag = screen.Name, PersistCombatUI = true })
-	
-	components.Background = CreateScreenComponent({ Name = "BlankObstacle", Group = group })
-	
-	if openFunc then openFunc(screen) end
-	
-	return screen
-end
-
-function ModUtil.Hades.DimMenu( screen )
-	if not screen then return end
-	if not screen.Components.BackgroundDim then
-		screen.Components.BackgroundDim = CreateScreenComponent({ Name = "rectangle01", Group = screen.Name })
-		SetScale({ Id = screen.Components.BackgroundDim.Id, Fraction = 4 })
-	end
-	SetColor({ Id = screen.Components.BackgroundDim.Id, Color = {0.090, 0.090, 0.090, 0.8} })
-end
-
-function ModUtil.Hades.UndimMenu( screen )
-	if not screen then return end
-	if not screen.Components.BackgroundDim then return end
-	SetColor({ Id = screen.Components.BackgroundDim.Id, Color = {0.090, 0.090, 0.090, 0} })
-end
-
-function ModUtil.Hades.PostOpenMenu( screen )
-	if TableLength(menuScreens) == 1 then
-		SetConfigOption({ Name = "FreeFormSelectWrapY", Value = true })
-		SetConfigOption({ Name = "UseOcclusion", Value = false })
-		FreezePlayerUnit()
-		EnableShopGamepadCursor()
-	end
-	thread(HandleWASDInput, screen)
-	HandleScreenInput(screen)
-	return screen
-end
-
-function ModUtil.Hades.GetMenuScreen( group )
-	return menuScreens[group]
-end
 
 -- Debug Printing
 
@@ -166,9 +80,9 @@ local function closePrintStack()
 end
 
 local function orderPrintStack(screen,components)
-	
-	if screen.CullPrintStack then 
-		local v = screen.TextStack[1]
+	local v
+	if screen.CullPrintStack then
+		v = screen.TextStack[1]
 		if v.obj then
 			Destroy({Ids = {v.obj.Id}})
 			components["TextStack_" .. v.tid] = nil
@@ -308,86 +222,6 @@ function ModUtil.Hades.PrintStackChunks( text, linespan, ... )
 	for _,s in ipairs( ModUtil.String.Chunk( text, linespan, ModUtil.Hades.PrintStackCapacity ) ) do
 		ModUtil.Hades.PrintStack( s, ... )
 	end
-end
-
--- Custom Menus
-
-function ModUtil.Hades.NewMenuYesNo( group, closeFunc, openFunc, yesFunc, noFunc, title, body, yesText, noText, icon, iconScale)
-	
-	if not group or group == "" then group = "MenuYesNo" end
-	if not yesFunc then yesFunc = function( ) end end
-	if not noFunc then noFunc = function( ) end end
-	if not icon then icon = "AmmoPack" end
-	if not iconScale then iconScale = 1 end
-	if not yesText then yesText = "Yes" end
-	if not noText then noText = "No" end
-	if not body then body = "Make a choice..." end
-	if not title then title = group end
-	
-	local screen = ModUtil.Hades.OpenMenu( group, closeFunc, openFunc )
-	local components = screen.Components
-	
-	PlaySound({ Name = "/SFX/Menu Sounds/GodBoonInteract" })
-	
-	components.LeftPart = CreateScreenComponent({ Name = "TraitTrayBackground", Group = group, X = 1030, Y = 424})
-	components.MiddlePart = CreateScreenComponent({ Name = "TraitTray_Center", Group = group, X = 660, Y = 464 })
-	components.RightPart = CreateScreenComponent({ Name = "TraitTray_Right", Group = group, X = 1270, Y = 438 })
-	SetScaleY({Id = components.LeftPart.Id, Fraction = 0.8})
-	SetScaleY({Id = components.MiddlePart.Id, Fraction = 0.8})
-	SetScaleY({Id = components.RightPart.Id, Fraction = 0.8})
-	SetScaleX({Id = components.MiddlePart.Id, Fraction = 5})
-	
-
-	CreateTextBox({ Id = components.Background.Id, Text = " "..title.." ", FontSize = 34,
-	OffsetX = 0, OffsetY = -225, Color = Color.White, Font = "SpectralSCLight",
-	ShadowBlur = 0, ShadowColor = {0,0,0,1}, ShadowOffset={0, 1}, Justification = "Center" })
-	CreateTextBox({ Id = components.Background.Id, Text = " "..body.." ", FontSize = 19,
-	OffsetX = 0, OffsetY = -175, Width = 840, Color = Color.SubTitle, Font = "CrimsonTextItalic",
-	ShadowBlur = 0, ShadowColor = {0,0,0,1}, ShadowOffset={0, 1}, Justification = "Center" })
-
-	components.Icon = CreateScreenComponent({ Name = "BlankObstacle", Group = group })
-	Attach({ Id = components.Icon.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = -50})
-	SetAnimation({ Name = icon, DestinationId = components.Icon.Id, Scale = iconScale })
-
-	components.CloseButton = CreateScreenComponent({ Name = "ButtonClose", Scale = 0.7, Group = group })
-	Attach({ Id = components.CloseButton.Id, DestinationId = components.Background.Id, OffsetX = 0, OffsetY = ScreenCenterY - 315 })
-	components.CloseButton.OnPressedFunctionName = ModUtil.Hades.CloseMenuYesNo
-	components.CloseButton.ControlHotkey = "Cancel"
-
-	components.YesButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.YesButton.OnPressedFunctionName = function(screen, button)
-		if not yesFunc(screen,button) then
-			ModUtil.Hades.CloseMenuYesNo(screen,button)
-		end
-	end
-	SetScaleX({Id = components.YesButton.Id, Fraction = 0.75})
-	SetScaleY({Id = components.YesButton.Id, Fraction = 1.15})
-	Attach({ Id = components.YesButton.Id, DestinationId = components.Background.Id, OffsetX = -150, OffsetY = 75 })
-	CreateTextBox({ Id = components.YesButton.Id, Text = " "..yesText.." ",
-		FontSize = 28, OffsetX = 0, OffsetY = 0, Width = 720, Color = Color.LimeGreen, Font = "AlegreyaSansSCLight",
-		ShadowBlur = 0, ShadowColor = {0,0,0,1}, ShadowOffset={0, 2}, Justification = "Center"
-	})
-	
-	components.NoButton = CreateScreenComponent({ Name = "BoonSlot1", Group = group, Scale = 0.35, })
-	components.NoButton.OnPressedFunctionName = function(screen, button)
-		if not noFunc( screen, button ) then
-			ModUtil.Hades.CloseMenuYesNo( screen, button )
-		end
-	end
-	SetScaleX({Id = components.NoButton.Id, Fraction = 0.75})
-	SetScaleY({Id = components.NoButton.Id, Fraction = 1.15})
-	Attach({ Id = components.NoButton.Id, DestinationId = components.Background.Id, OffsetX = 150, OffsetY = 75 })
-	CreateTextBox({ Id = components.NoButton.Id, Text = noText,
-		FontSize = 26, OffsetX = 0, OffsetY = 0, Width = 720, Color = Color.Red, Font = "AlegreyaSansSCLight",
-		ShadowBlur = 0, ShadowColor = {0,0,0,1}, ShadowOffset={0, 2}, Justification = "Center"
-	})
-	
-	return ModUtil.Hades.PostOpenMenu( screen )
-end
-
-function ModUtil.Hades.CloseMenuYesNo( screen, button )
-	PlaySound( { Name = "/SFX/Menu Sounds/GeneralWhooshMENU" } )
-	ModUtil.Hades.CloseMenu( screen, button )
 end
 
 -- Trigger Proxy

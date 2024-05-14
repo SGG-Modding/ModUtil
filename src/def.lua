@@ -1,6 +1,10 @@
----@meta _
----@diagnostic disable
+---@meta SGG_Modding-ModUtil
 
+---@alias SGG_Modding-ModUtil*-nil boolean|string|number|integer|function|table|thread|userdata|lightuserdata
+
+--[[
+	DOCUMENTATION FOR MODUTIL IS A WORK IN PROGRESS!
+]]
 ModUtil = {
 	Mod = { },
 	Args = { },
@@ -10,455 +14,250 @@ ModUtil = {
 	Array = { },
 	IndexArray = { },
 	Entangled = { },
-	Metatables = { }
+	Metatables = { },
+    Hades = { }
 }
 
--- Extended Global Utilities (assuming lua 5.2)
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*getter fun(iter: table<K,V>, key: K): value: V?
 
-local error, pcall, xpcall = error, pcall, xpcall
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*setter fun(iter: table<K,V>, key: K, value: V)
 
-local debug, type, table, unpack = debug, type, table, table.unpack
-local function getname( )
-	return debug.getinfo( 2, "n" ).name  or "?"
-end
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*length fun(iter: table<K,V>): length: integer
 
--- doesn't invoke __index
----@diagnostic disable-next-line: lowercase-global
-rawnext = next
-local rawnext = rawnext
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*next fun(iter: table<K,V>, key: K?): key: K?, value: V?
 
-local function pusherror( f, ... )
-	local ret = table.pack( pcall( f, ... ) )
-	if ret[ 1 ] then return unpack( ret, 2, ret.n ) end
-	error( ret[ 2 ], 3 )
-end
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*inext fun(iter: table<K,V>, index: integer?): index: integer?, value: V?
 
--- invokes __next
-function next( t, k )
-	local m = debug.getmetatable( t )
-	local f = m and rawget(m,'__next') or rawnext
-	return pusherror( f, t, k )
-end
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*pairs fun(iter: table<K,V>): next: SGG_Modding-ModUtil*next<K,V>, iter: table<K,V>
 
-local next = next
+---@generic K : SGG_Modding-ModUtil*-nil
+---@generic V : any
+---@alias SGG_Modding-ModUtil*ipairs fun(iter: table<K,V>): inext: SGG_Modding-ModUtil*inext<K,V>, iter: table<K,V>
+
+-- base next, doesn't invoke __index
+---@type SGG_Modding-ModUtil*next
+function rawnext( iter, key ) end
+
+-- next that does invoke __index
+---@type SGG_Modding-ModUtil*next
+function next( iter, key ) end
 
 -- truly raw pairs, ignores __next and __pairs
----@type fun( t ): any, any
----@diagnostic disable-next-line: lowercase-global
-function rawpairs( t )
-	return rawnext, t
+---@type SGG_Modding-ModUtil*pairs
+function rawpairs( iter )
+	return rawnext, iter
 end
 
 -- quasi-raw pairs, invokes __next but ignores __pairs
----@type fun( t ): any, any
----@diagnostic disable-next-line: lowercase-global
-function qrawpairs( t )
-    return next, t
+---@type SGG_Modding-ModUtil*pairs
+function qrawpairs( iter )
+    return next, iter
 end
-
-local rawget, rawset, rawlen = rawget, rawset, rawlen
 
 -- doesn't invoke __index just like rawnext
----@diagnostic disable-next-line: lowercase-global
-function rawinext( t, i )
+---@type SGG_Modding-ModUtil*inext
+function rawinext( iter, index ) end
 
-	if type( t ) ~= "table" then
-		error( "bad argument #1 to '" .. getname( ) .. "'(table expected got " .. type( i ) ..")", 2 )
-	end
-
-	if i == nil then
-		i = 0
-	elseif type( i ) ~= "number" then
-		error( "bad argument #2 to '" .. getname( ) .. "'(number expected got " .. type( i ) ..")", 2 )
-	elseif i < 0 then
-		error( "bad argument #2 to '" .. getname( ) .. "'(index out of bounds, too low)", 2 )
-	end
-
-	i = i + 1
-	local v = rawget( t, i )
-	if v ~= nil then
-		return i, v
-	end
-end
-
-local rawinext = rawinext
-
--- invokes __inext
----@diagnostic disable-next-line: lowercase-global
-function inext( t, i )
-	local m = debug.getmetatable( t )
-	local f = m and rawget(m,'__inext') or rawinext
-	return pusherror( f, t, i )
-end
-
-local inext = inext
+-- invokes __inext just like the new next
+---@type SGG_Modding-ModUtil*inext
+function inext( iter, index ) end
 
 -- truly raw ipairs, ignores __inext and __ipairs
----@diagnostic disable-next-line: lowercase-global
-function rawipairs( t )
-	return function( self, key )
-		return rawinext( self, key )
-	end, t, nil
-end
+---@type SGG_Modding-ModUtil*ipairs
+function rawipairs( t ) end
 
 -- quasi-raw ipairs, invokes __inext but ignores __ipairs
----@diagnostic disable-next-line: lowercase-global
-function qrawipairs( t )
-	return function( self, key )
-		return inext( self, key )
-	end, t, nil
-end
+---@type SGG_Modding-ModUtil*ipairs
+function qrawipairs( t ) end
 
 -- ignore __tostring (not thread safe?)
----@diagnostic disable-next-line: lowercase-global
-function rawtostring(t)
-	-- https://stackoverflow.com/a/43286713
-	local m = getmetatable( t )
-	local f
-	if m then
-		f = m.__tostring
-		m.__tostring = nil
-	end
-	local s = tostring( t )
-	if m then
-		m.__tostring = f
-	end
-	return s
-end
+---@param obj any
+---@return string rep
+function rawtostring( obj ) end
 
-function getfenv( fn )
-	if type( fn ) ~= "function" then
-		fn = debug.getinfo( ( fn or 1 ) + 1, "f" ).func
-	end
-	local i = 0
-	repeat
-		i = i + 1
-		local name, val = debug.getupvalue( fn, i )
-		if name == "_ENV" then
-			return val
-		end
-	until not name
-end
+---@param fn integer | function?
+---@return table?
+function getfenv( fn ) end
 
 --[[
 	Replace a function's _ENV with a new environment table.
 	Global variable lookups (including function calls) in that function
 	will use the new environment table rather than the normal one.
 	This is useful for function-specific overrides. The new environment
-	table should generally have _ENV_ORIGINAL as its __index and __newindex, so that any globals
-	other than those being deliberately overridden operate as usual.
+	table should generally have _G as its __index (and usually __newindex),
+    so that any globals other than those being deliberately overridden operate as usual.
 ]]
-function setfenv( fn, env )
-	if type( fn ) ~= "function" then
-		fn = debug.getinfo( ( fn or 1 ) + 1, "f" ).func
-	end
-	local i = 0
-	repeat
-		i = i + 1
-		local name = debug.getupvalue( fn, i )
-		if name == "_ENV" then
-			debug.upvaluejoin( fn, i, ( function( )
-				return env
-			end ), 1 )
-			return env
-		end
-	until not name
-end
+---@param fn integer | function?
+---@param env table?
+function setfenv( fn, env ) end
 
-table.rawinsert = table.insert
-local rawinsert = table.rawinsert
+-- base table.insert
+---@param list table
+---@param value any
+function table.rawinsert( list, value ) end
+
+-- base table.insert
+---@param list table
+---@param pos integer
+---@param value any
+function table.rawinsert( list, pos, value ) end
+
 -- table.insert that respects metamethods
----@type fun( list, pos, value?: any )
----@diagnostic disable-next-line: duplicate-set-field
-function table.insert( list, pos, value )
-	local last = #list
-	if value == nil then
-		value = pos
-		pos = last + 1
-	end
-	if pos < 1 or pos > last + 1 then
-		error( "bad argument #2 to '" .. getname( ) .. "' (position out of bounds)", 2 )
-	end
-	if pos <= last then
-		local i = last
-		repeat
-			list[ i + 1 ] = list[ i ]
-			i = i - 1
-		until i < pos
-	end
-	list[ pos ] = value
-end
+---@param list table
+---@param value any
+function table.insert( list, value ) end
 
-table.rawremove = table.remove
+-- table.insert that respects metamethods
+---@param list table
+---@param pos integer
+---@param value any
+function table.insert( list, pos, value ) end
+
+-- base table.remove
+---@param list table
+---@param pos integer?
+---@return any value
+function table.rawremove( list, pos ) end
+
 -- table.remove that respects metamethods
----@type fun( list, pos ): any
----@diagnostic disable-next-line: duplicate-set-field
-function table.remove( list, pos )
-	local last = #list
-	if pos == nil then
-		pos = last
-	end
-	if pos < 0 or pos > last + 1 then
-		error( "bad argument #2 to '" .. getname( ) .. "' (position out of bounds)", 2 )
-	end
-	local value = list[ pos ]
-	if pos <= last then
-		local i = pos
-		repeat
-			list[ i ] = list[ i + 1 ]
-			i = i + 1
-		until i > last
-	end
-	return value
-end
+---@param list table
+---@param pos integer?
+---@return any value
+function table.remove( list, pos ) end
 
-table.rawunpack = unpack
+-- base table.unpack
+---@generic T: any
+---@param list T[]
+---@param start integer?
+---@param stop integer?
+---@return ...
+function table.rawunpack( list, start, stop ) end
+
 -- table.unpack that respects metamethods
-do
-	local function _unpack( t, m, i, ... )
-		if i < m then return ... end
-		return _unpack( t, m, i - 1, t[ i ], ... )
-	end
-	
-	---@type fun( list, i?, j? ): any
-	---@diagnostic disable-next-line: duplicate-set-field
-	function table.unpack( list, i, j )
-		return _unpack( list, i or 1, j or list.n or #list or 1 )
-	end
-end
+---@generic T: any
+---@param list T[]
+---@param start integer?
+---@param stop integer?
+---@return ...
+function table.unpack( list, start, stop ) end
 
-local rawconcat = table.concat
-table.rawconcat = rawconcat
+-- base table.rawconcat
+---@param list table
+---@param sep string?
+---@param start integer?
+---@param stop integer?
+---@return string concat
+function table.rawconcat( list, sep, start, stop ) end
+
 -- table.concat that respects metamethods and includes more values
-do
-	local wt = setmetatable( { }, { __mode = 'v' } )
-	---@type fun( tbl, sep?, i?, j? ): string
-	---@diagnostic disable-next-line: duplicate-set-field
-	function table.concat( tbl, sep, i, j )
-		i = i or 1
-		j = j or tbl.n or #tbl
-		if i > j then return "" end
-		sep = sep or ""
-		local t = rawnext( wt ) or { }
-		rawset( wt, 1, t )
-		for k = i, j, 1 do
-			rawset( t, k, tostring( tbl[ k ] ) )
-		end
-		return rawconcat( t, sep, i, j )
-	end
-end
+---@param list table
+---@param sep string?
+---@param start integer?
+---@param stop integer?
+---@return string concat
+function table.concat( list, sep, start, stop ) end
 
---[[
-	NOTE: Other table functions that need to get updated to respect metamethods
-	- table.sort
---]]
+---@class Proxy
+ModUtil.Metatables.Proxy = {}
+---@type SGG_Modding-ModUtil*getter
+function ModUtil.Metatables.Proxy:__index( key ) end
+---@type SGG_Modding-ModUtil*setter
+function ModUtil.Metatables.Proxy:__newindex( key, value ) end
+---@type SGG_Modding-ModUtil*length
+function ModUtil.Metatables.Proxy:__len() end
+---@type SGG_Modding-ModUtil*next
+function ModUtil.Metatables.Proxy:__next( key ) end
+---@type SGG_Modding-ModUtil*inext
+function ModUtil.Metatables.Proxy:__inext( index ) end
+---@type SGG_Modding-ModUtil*pairs
+function ModUtil.Metatables.Proxy:__pairs( ) end
+---@type SGG_Modding-ModUtil*ipairs
+function ModUtil.Metatables.Proxy:__ipairs( ) end
 
---- bind to locals to minimise environment recursion and improve speed
-local
-	ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
-		rawpairs, rawipairs, qrawpairs, qrawipairs, rawtostring, tostring, getfenv, setfenv
-	=
-	ModUtil, getmetatable, setmetatable, pairs, ipairs, coroutine, table,
-		rawpairs, rawipairs, qrawpairs, qrawipairs, rawtostring, tostring, getfenv, setfenv
+---@generic K: SGG_Modding-ModUtil*-nil
+---@generic V: any
+---@param data table<K,V>
+---@param meta table?
+---@return Proxy<K,V> proxy
+function ModUtil.Proxy( data, meta ) end
 
---[[
-	local version of toLookup as to not depend on Main.lua
-]]
-local function toLookup( tableArg )
-	local lookup = { }
-	for _, value in pairs( tableArg ) do
-		lookup[ value ] = true
-	end
-	return lookup
-end
+---@class Raw: Proxy
+ModUtil.Metatables.Raw = {}
 
--- Type/Syntax Constants
-
-local passByValueTypes = toLookup{ "number", "boolean", "nil" }
-local callableCandidateTypes = toLookup{ "function", "table", "userdata" } -- string excluded because their references are managed
-local excludedFieldNames = toLookup{ "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while" }
-
-local floor = math.floor
-local function isInt( v )
-	return type( v ) == "number" and floor( v ) == v
-end
-
--- Environment Manipulation
-
-local _ENV_ORIGINAL = _G
-local _ENV_REPLACED = _G
-
-local threadEnvironments = setmetatable( { }, { __mode = "k" } )
-
-local function getEnv( thread )
-	return threadEnvironments[ thread or coroutine.running( ) ] or _ENV_ORIGINAL
-end
-
-local function replaceGlobalEnvironment( )
-	_ENV_REPLACED = setmetatable( { _DEBUG_GLOBALS = _ENV_ORIGINAL }, {
-		__index = function( _, key )
-			return getEnv( )[ key ]
-		end,
-		__newindex = function( _, key, value )
-			getEnv( )[ key ] = value
-		end,
-		__len = function( )
-			return #getEnv( )
-		end,
-		__next = function( _, key )
-			return next( getEnv( ), key )
-		end,
-		__inext = function( _, key )
-			return inext( getEnv( ), key )
-		end,
-		---@type fun( t? ): any, any
-		__pairs = function( )
-			return pairs( getEnv( ) )
-		end,
-		__ipairs = function( )
-			return ipairs( getEnv( ) )
-		end
-	} )
-	_ENV_ORIGINAL._G = _ENV_REPLACED
-	local reg = debug.getregistry( )
-	for i, v in ipairs( reg ) do
-		if v == _ENV_ORIGINAL then reg[ i ] = _ENV_REPLACED end
-	end
-	ModUtil.Identifiers.Inverse._ENV = _ENV_REPLACED
-end
-
--- Managed Object Data
-
-local objectData = setmetatable( { }, { __mode = "k" } )
-
-local function newObjectData( data )
-	local obj = { }
-	objectData[ obj ] = data
-	return obj
-end
-
-ModUtil.Metatables.Proxy = {
-	__index = function( self, key )
-		return objectData[ self ][ key ]
-	end,
-	__newindex = function( self, key, value )
-		objectData[ self ][ key ] = value
-	end,
-	__len = function( self )
-		return #objectData( self )
-	end,
-	__next = function( self, key )
-		return next( objectData[ self ], key )
-	end,
-	__inext = function( self, idx )
-		return inext( objectData[ self ], idx )
-	end,
-	__pairs = function( self )
-		return pairs( objectData[ self ] )
-	end,
-	__ipairs = function( self )
-		return ipairs( objectData[ self ] )
-	end
-}
-
-function ModUtil.Proxy( data, meta )
-	return setmetatable( newObjectData( data ), meta or ModUtil.Metatables.Proxy )
-end
-
-ModUtil.Metatables.Raw = {
-	__index = function( self, ... )
-		return rawget( objectData[ self ][ "data" ], ... )
-	end,
-	__newindex = function( self, ... )
-		return rawset( objectData[ self ][ "data" ], ... )
-	end,
-	__len = function( self )
-		return rawlen( objectData[ self ][ "data" ] )
-	end,
-	__next = function( self, key )
-		return rawnext( objectData[ self ][ "data" ], key )
-	end,
-	__inext = function( self, idx )
-		return rawinext( objectData[ self ][ "data" ], idx )
-	end,
-	__pairs = function( self )
-		return rawpairs( objectData[ self ][ "data" ] )
-	end,
-	__ipairs = function( self, ... )
-		return rawipairs( objectData[ self ][ "data" ] )
-	end
-}
-
-function ModUtil.Raw( obj )
-	return ModUtil.Proxy( { data = obj }, ModUtil.Metatables.Raw )
-end
+---@generic K: SGG_Modding-ModUtil*-nil
+---@generic V: any
+---@param data table<K,V>
+---@return Raw<K,V> proxy
+function ModUtil.Raw( data ) end
 
 -- Operations on Callables
 
+---@overload fun(_: any, obj: table): boolean
 ModUtil.Callable = { Func = { } }
 
-function ModUtil.Callable.Get( obj )
-	local meta, pobj
-	while obj do
-		local t = type( obj )
-		if t == "function" then break end
-		if not callableCandidateTypes[ t ] then return pobj end
-		meta = getmetatable( obj )
-		if not meta then break end
-		pobj, obj = obj, rawget( meta, "__call" )
-	end
-	return pobj, obj
-end
+---@param obj table | function
+---@return table? parent
+---@return table | function? call
+function ModUtil.Callable.Get( obj ) end
 
-function ModUtil.Callable.Set( o, f )
-	local m = getmetatable( o ) or { }
-	m.__call = f
-	pcall( setmetatable, o, m )
-	return o, f
-end
+---@param obj table | function
+---@param call function
+---@return table? parent
+---@return table | function? call
+function ModUtil.Callable.Set( obj, call ) end
 
-function ModUtil.Callable.Map( o, f, ... )
-	local pobj, obj = ModUtil.Callable.Get( o )
-	if not pobj then
-		return nil, f( obj, ... )
-	end
-	return ModUtil.Callable.Set( pobj, f( obj, ... ) )
-end
+---@generic C: table|function
+---@param obj C
+---@param mcall fun(call:C, ...): C
+---@return table? parent
+---@return C? call
+function ModUtil.Callable.Map( obj, mcall, ... ) end
 
-function ModUtil.Callable.Func.Get( ... )
-	local _, f = ModUtil.Callable.Get( ... )
-	return f
-end
+---@param obj table | function
+---@return table | function? call
+function ModUtil.Callable.Func.Get( obj ) end
 
-function ModUtil.Callable.Func.Set( ... )
-	local _, f = ModUtil.Callable.Set( ... )
-	return f
-end
+---@param obj table | function
+---@param call function
+---@return table | function? call
+function ModUtil.Callable.Func.Set( obj, call ) end
 
-function ModUtil.Callable.Func.Map( ... )
-	local _, f = ModUtil.Callable.Map( ... )
-	return f
-end
-
-ModUtil.Callable.Set( ModUtil.Callable, function ( _, obj )
-	return ModUtil.Callable.Func.Get( obj ) ~= nil
-end )
+---@generic C: table|function
+---@param obj C
+---@param mcall fun(call:C, ...): C
+---@return C? call
+function ModUtil.Callable.Func.Map( obj, mcall, ... ) end
 
 -- Data Misc
 
-function ModUtil.Args.Map( map, ... )
-	local out = { }
-	local args = table.pack( ... )
-	for i = 1, args.n do
-		 out[ i ] = map( args[ i ] )
-	end
-	return table.rawunpack( out )
-end
+---@generic I: any
+---@generic O: any
+---@param map fun(input: I): output: O
+---@param ... I
+---@return O ...
+function ModUtil.Args.Map( map, ... ) end
 
-function ModUtil.Args.Take( n, ... )
-	local args = table.pack( ... )
-	return table.rawunpack( args, 1, n )
-end
+---@generic A: any
+---@param n integer
+---@param ... A
+---@return A ...
+function ModUtil.Args.Take( n, ... ) end
+
+--- TODO: ...
+
+--[==[
 
 function ModUtil.Args.Drop( n, ... )
 	local args = table.pack( ... )
@@ -2526,3 +2325,683 @@ end
 -- final actions
 
 replaceGlobalEnvironment()
+
+ModUtil.IndexArray.Context = { }
+
+function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
+	return ModUtil.Context.Env( ModUtil.IndexArray.Get( baseTable, indexArray ), context )
+end
+
+ModUtil.IndexArray.Wrap = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, wrap, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
+end )
+
+function ModUtil.IndexArray.Wrap.Bottom( baseTable, indexArray, wrap, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap.Bottom, wrap, mod )
+end
+
+ModUtil.IndexArray.Context.Wrap = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, context, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
+end )
+
+function ModUtil.IndexArray.Context.Wrap.Static( baseTable, indexArray, context, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap.Static, context, mod )
+end
+
+ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, func, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
+end )
+
+function ModUtil.IndexArray.Decorate.Pop( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Pop )
+end
+
+function ModUtil.IndexArray.Decorate.Inject( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Inject )
+end
+
+function ModUtil.IndexArray.Decorate.Eject( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Eject )
+end
+
+function ModUtil.IndexArray.Decorate.Refresh( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Refresh )
+end
+
+function ModUtil.IndexArray.Override( baseTable, indexArray, value, mod )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Override, value, mod )
+end
+
+function ModUtil.IndexArray.Restore( baseTable, indexArray )
+	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Restore )
+end
+
+function ModUtil.IndexArray.Overriden( baseTable, indexArray )
+	return ModUtil.Overriden( ModUtil.IndexArray.Get( baseTable, indexArray ) )
+end
+
+function ModUtil.IndexArray.Original( baseTable, indexArray )
+	return ModUtil.Original( ModUtil.IndexArray.Get( baseTable, indexArray ) )
+end
+
+function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
+	return ModUtil.ReferFunction( function( )
+		return ModUtil.IndexArray.Get( baseTable, indexArray )
+	end )
+end
+
+function ModUtil.IndexArray.ReferTable( baseTable, indexArray )
+	return ModUtil.ReferTable( function( )
+		return ModUtil.IndexArray.Get( baseTable, indexArray )
+	end )
+end
+
+---
+
+ModUtil.Path.Context = { }
+
+function ModUtil.Path.Context.Env( path, context )
+	return ModUtil.Context.Env( ModUtil.Path.Get( path ), context )
+end
+
+ModUtil.Path.Wrap = ModUtil.Callable.Set( { }, function( _, path, wrap, mod )
+	return ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
+end )
+
+function ModUtil.Path.Wrap.Bottom( path, wrap, mod )
+	return ModUtil.Path.Map( path, ModUtil.Wrap.Bottom, wrap, mod )
+end
+
+ModUtil.Path.Context.Wrap = ModUtil.Callable.Set( { }, function( _, path, context, mod )
+	return ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
+end )
+
+function ModUtil.Path.Context.Wrap.Static( path, context, mod )
+	return ModUtil.Path.Map( path, ModUtil.Context.Wrap.Static, context, mod )
+end
+
+ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( _, path, func, mod )
+	return ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
+end )
+
+function ModUtil.Path.Decorate.Pop( path )
+	return ModUtil.Path.Map( path, ModUtil.Decorate.Pop )
+end
+
+function ModUtil.Path.Decorate.Refresh( path )
+	return ModUtil.Path.Map( path, ModUtil.Decorate.Refresh )
+end
+
+function ModUtil.Path.Override( path, value, mod )
+	return ModUtil.Path.Map( path, ModUtil.Override, value, mod )
+end
+
+function ModUtil.Path.Restore( path )
+	return ModUtil.Path.Map( path, ModUtil.Restore )
+end
+
+function ModUtil.Path.Overriden( path )
+	return ModUtil.Overriden( ModUtil.Path.Get( path ) )
+end
+
+function ModUtil.Path.Original( path )
+	return ModUtil.Original( ModUtil.Path.Get( path ) )
+end
+
+function ModUtil.Path.ReferFunction( path )
+	return ModUtil.ReferFunction( function( )
+		return ModUtil.Path.Get( path )
+	end )
+end
+
+function ModUtil.Path.ReferTable( path )
+	return ModUtil.ReferTable( function( )
+		return ModUtil.Path.Get( path )
+	end )
+end
+
+--[[
+    ModUtil Main
+    Components of ModUtil that depend on loading after Main.lua
+]]
+
+-- Global Interception
+
+--[[
+	Intercept global keys which are objects to return themselves
+	This way we can use other namespaces for UI etc
+--]]
+
+local callableCandidateTypes = ModUtil.Internal.callableCandidateTypes
+local setSaveIgnore = ModUtil.Internal.setSaveIgnore
+
+setSaveIgnore( "ModUtil", true )
+
+rawset( _ENV, "GLOBALS", ModUtil.Internal._ENV_ORIGINAL )
+setSaveIgnore( "GLOBALS", true )
+
+local function isPath( path )
+	return path:find("[.]") 
+		and not path:find("[.][.]+")
+		and not path:find("^[.]")
+		and not path:find("[.]$")
+end
+
+local function routeKey( self, key )
+	local t = type( key )
+	if t == "string" and isPath( key ) then
+		return ModUtil.Path.Get( key )
+	end
+	if callableCandidateTypes[ t ] then
+		return key
+	end
+end
+
+local function extendGlobalEnvironment()
+	local meta = getmetatable( _ENV ) or { }
+	local mi = meta.__index
+	local mit = type(mi)
+	if mit == "function" then
+		meta.__index = ModUtil.Wrap( meta.__index, function( base, self, key )
+			local value = base( self, key )
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end, ModUtil )
+	elseif mit == "table" then
+		meta.__index = function( self, key )
+			local value = mi[key]
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end
+	else
+		meta.__index = routeKey
+	end
+
+	setmetatable( _ENV, meta )
+end
+
+local objectData = ModUtil.Internal.objectData
+local passByValueTypes = ModUtil.Internal.passByValueTypes
+
+local function modDataProxy( value, level )
+	level = ( level or 1 ) + 1
+	local t = type( value )
+	if passByValueTypes[ t ] or t == "string" then
+		return value
+	end
+	if t == "table" then
+		if getmetatable( value ) then
+			error( "saved data tables cannot have values with metatables", level )
+		end
+		return ModUtil.Entangled.ModData( value )
+	end
+	error( "saved data tables cannot have values of type "..t..".", level )
+end
+
+local function modDataKey( key, level )
+	local t = type( key )
+	if passByValueTypes[ t ] or t == "string" then
+		return key
+	end
+	error( "saved data tables cannot have keys of type "..t..".", ( level or 1 ) + 1 )
+end
+
+local function modDataPlain( obj, key, value, level )
+	level = ( level or 1 ) + 1
+	if modDataKey( key, level ) ~= nil then
+		local t = type( value )
+		if passByValueTypes[ t ] or t == "string" then
+			obj[ key ] = value
+		elseif t == "table" then
+			if getmetatable( value ) then
+				local state
+				state, value = pcall( function( ) return objectData[ value ] end )
+				if not state or type( value ) ~= "table" then
+					error( "saved data tables cannot have values with metatables", level )
+				end
+			end
+			for k, v in pairs( value ) do
+				modDataPlain( value, k, v, level )
+			end
+			obj[ key ] = value
+		else
+			error( "saved data tables cannot have values of type "..t..".", level )
+		end
+	end
+end
+
+ModUtil.Metatables.Entangled.ModData = {
+	__index = function( self, key )
+		return modDataProxy( objectData[ self ][ key ], 2 )
+	end,
+	__newindex = function( self, key, value )
+		modDataPlain( objectData[ self ], key, value, 2 )
+	end,
+	__len = function( self )
+		return #objectData[ self ]
+	end,
+	__next = function( self, key )
+		local key = next( objectData[ self ], key )
+		if modDataKey( key, 2 ) ~= nil then
+			return key, modDataProxy( objectData[ self ][ key ], 2 )
+		end
+	end,
+	__inext = function( self, idx )
+		local idx = inext( objectData[ self ], idx )
+		if modDataKey( idx, 2 ) ~= nil then
+			return idx, modDataProxy( objectData[ self ][ idx ], 2 )
+		end
+	end,
+	__pairs = function( self )
+		return qrawpairs( self )
+	end,
+	__ipairs = function( self )
+		return qrawipairs( self )
+	end
+}
+
+function ModUtil.Entangled.ModData( value )
+	return ModUtil.Proxy( value, ModUtil.Metatables.Entangled.ModData )
+end
+
+ModUtil.Mod.Data = setmetatable( { }, {
+	__call = function( _, mod )
+		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
+		local key = ModUtil.Mods.Inverse[ mod ]
+		local data = ModData[ key ]
+		if not data then
+			data = { }
+			ModData[ key ] = data
+		end
+		return modDataProxy( data, 2 )
+	end,
+	__index = function( _, key )
+		ModData = ModData or { }
+		return modDataProxy( ModData[ key ], 2 )
+	end,
+	__newindex = function( _, key, value )
+		ModData = ModData or { }
+		modDataPlain( ModData, key, value, 2 )
+	end,
+	__len = function( )
+		ModData = ModData or { }
+		return #ModData
+	end,
+	__next = function( _, key )
+		ModData = ModData or { }
+		local key = next( ModData, key )
+		if modDataKey( key, 2 ) ~= nil then
+			return key, modDataProxy( ModData[ key ], 2 )
+		end
+	end,
+	__inext = function( _, idx )
+		ModData = ModData or { }
+		local idx = inext( ModData, idx )
+		if modDataKey( idx, 2 ) ~= nil then
+			return idx, modDataProxy( ModData[ idx ], 2 )
+		end
+	end,
+	---@type fun( t ): any, any?, any?
+	__pairs = function( self )
+		return qrawpairs( self )
+	end,
+	__ipairs = function( self )
+		return qrawipairs( self )
+	end	
+} )
+
+local relativeTable = { }
+
+relativeTable[ ModUtil.Mod.Data ] = true
+
+ModUtil.Metatables.Mod = {
+	__index = function( self, key )
+		local val = ModUtil.Mod[ key ]
+		if relativeTable[ val ] then
+			return val( self )
+		elseif type( val ) == "function" then
+			return ModUtil.Wrap( val, function( base, ... )
+				return base( self, ... )
+			end, ModUtil )
+		end
+		return val
+	end
+}
+
+-- Load Trigger Queue
+
+local funcsToLoad = { }
+
+local function loadFuncs( triggerArgs )
+	for _, v in pairs( funcsToLoad ) do
+		v( triggerArgs )
+	end
+	funcsToLoad = { }
+end
+---@diagnostic disable-next-line: undefined-global
+if OnAnyLoad then
+	---@diagnostic disable-next-line: undefined-global
+	OnAnyLoad{ function( triggerArgs ) loadFuncs( triggerArgs ) end }
+end
+
+--[[
+	Run the provided function once on the next in-game load.
+
+	triggerFunction - the function to run
+--]]
+function ModUtil.LoadOnce( triggerFunction )
+	table.insert( funcsToLoad, triggerFunction )
+end
+
+--[[
+	Cancel running the provided function once on the next in-game load.
+
+	triggerFunction - the function to cancel running
+--]]
+function ModUtil.CancelLoadOnce( triggerFunction )
+	for i, v in ipairs( funcsToLoad ) do
+		if v == triggerFunction then
+			table.remove( funcsToLoad, i )
+		end
+	end
+end
+
+-- Internal Access
+
+do
+	local ups = ModUtil.UpValues( function( )
+		return _ENV, funcsToLoad, loadFuncs, isPath, routeKey, callableCandidateTypes, setSaveIgnore,
+			objectData, passByValueTypes, modDataKey, modDataProxy, modDataPlain, relativeTable, extendGlobalEnvironment
+	end )
+	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
+end
+
+extendGlobalEnvironment()
+
+-- Debug Printing
+
+local printDisplay = nil
+
+function ModUtil.Hades.PrintDisplay( text , delay, color )
+	if type(text) ~= "string" then
+		text = tostring(text)
+	end
+	text = " "..text.." "
+	if color == nil then
+		color = Color.Yellow
+	end
+	if delay == nil then
+		delay = 5
+	end
+	if printDisplay then
+		Destroy({Ids = {printDisplay.Id}})
+	end
+	printDisplay = CreateScreenComponent({Name = "BlankObstacle", Group = "PrintDisplay", X = ScreenCenterX, Y = 40 })
+	CreateTextBox({ Id = printDisplay.Id, Text = text, FontSize = 22, Color = color, Font = "UbuntuMonoBold"})
+	
+	if delay > 0 then
+		thread(function()
+			wait(delay)
+			Destroy({Ids = {printDisplay.Id}})
+			printDisplay = nil
+		end)
+	end
+end
+
+local printOverhead = { }
+
+function ModUtil.Hades.PrintOverhead(text, delay, color, dest)
+	if type(text) ~= "string" then
+		text = tostring(text)
+	end
+	text = " "..text.." "
+	if dest == nil then
+		dest = CurrentRun.Hero.ObjectId
+	end
+	if color == nil then
+		color = Color.Yellow
+	end
+	if delay == nil then
+		delay = 5
+	end
+	Destroy({Ids = {printOverhead[dest]}})
+	local id = SpawnObstacle({ Name = "BlankObstacle", Group = "PrintOverhead", DestinationId = dest })
+	printOverhead[dest] = id
+	Attach({ Id = id, DestinationId = dest })
+	CreateTextBox({ Id = id, Text = text, FontSize = 32, OffsetX = 0, OffsetY = -150, Color = color, Font = "AlegreyaSansSCBold", Justification = "Center" })
+	if delay > 0 then
+		thread(function()
+			wait(delay)
+			if printOverhead[dest] then
+				Destroy({Ids = {id}})
+				printOverhead[dest] = nil
+			end
+		end)
+	end
+end
+
+local printStack = nil
+
+local function closePrintStack()
+	if printStack then
+		printStack.CullEnabled = false
+		PlaySound({ Name = "/SFX/Menu Sounds/GeneralWhooshMENU" })
+		printStack.KeepOpen = false
+		
+		CloseScreen(GetAllIds(printStack.Components),0)
+		closeFuncs["PrintStack"] = nil
+		printStack = nil
+	end
+end
+
+local function orderPrintStack(screen,components)
+	local v
+	if screen.CullPrintStack then
+		v = screen.TextStack[1]
+		if v.obj then
+			Destroy({Ids = {v.obj.Id}})
+			components["TextStack_" .. v.tid] = nil
+			v.obj = nil
+			screen.TextStack[v.tid]=nil
+		end
+		thread( function()
+			local v = screen.TextStack[2]
+			if v then
+				wait(v.data.Delay)
+				if v.obj then
+					screen.CullPrintStack = true
+				end
+			end
+		end)
+	else
+		thread( function()
+			local v = screen.TextStack[1]
+			if v then 
+				wait(v.data.Delay)
+				if v.obj then
+					screen.CullPrintStack = true
+				end
+			end
+		end)
+	end
+	screen.CullPrintStack = false
+	
+	for k,v in pairs(screen.TextStack) do
+		components["TextStack_" .. k] = nil
+		Destroy({Ids = {v.obj.Id}})
+	end
+	
+	screen.TextStack = CollapseTable(screen.TextStack)
+	for i,v in pairs(screen.TextStack) do
+		v.tid = i
+	end
+	if #screen.TextStack == 0 then
+		return closePrintStack()
+	end
+	
+	local Ymul = screen.StackHeight+1
+	local Ygap = 30
+	local Yoff = 26*screen.StackHeight+22
+	local n =#screen.TextStack
+	
+	if n then
+		for k=1,math.min(n,Ymul) do
+			v = screen.TextStack[k]
+			if v then
+				local data = v.data
+				screen.TextStack[k].obj = CreateScreenComponent({ Name = "rectangle01", Group = "PrintStack", X = -1000, Y = -1000})
+				local textStack = screen.TextStack[k].obj
+				components["TextStack_" .. k] = textStack
+				SetScaleX({Id = textStack.Id, Fraction = 10/6})
+				SetScaleY({Id = textStack.Id, Fraction = 0.1})
+				SetColor({ Id = textStack.Id, Color = data.Bgcol })
+				CreateTextBox({ Id = textStack.Id, Text = data.Text, FontSize = data.FontSize, OffsetX = 0, OffsetY = 0, Color = data.Color, Font = data.Font, Justification = "Center" })
+				Attach({ Id = textStack.Id, DestinationId = components.Background.Id, OffsetX = 220, OffsetY = -Yoff })
+				Yoff = Yoff - Ygap
+			end
+		end
+	end
+	
+end
+
+function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, sound )		
+	if color == nil then color = {1,1,1,1} end
+	if bgcol == nil then bgcol = {0.590, 0.555, 0.657,0.125} end
+	if fontsize == nil then fontsize = 13 end
+	if font == nil then font = "UbuntuMonoBold" end
+	if sound == nil then sound = "/Leftovers/SFX/AuraOff" end
+	if delay == nil then delay = 3 end
+	
+	if type(text) ~= "string" then 
+		text = tostring(text)
+	end
+	text = " "..text.." "
+	
+	local first = false
+	if not printStack then
+		first = true
+		printStack = { Components = {} }
+		closeFuncs["PrintStack"] = closePrintStack
+	end
+	local screen = printStack
+	local components = screen.Components
+	
+	if first then 
+	
+		screen.KeepOpen = true
+		screen.TextStack = {}
+		screen.CullPrintStack = false
+		screen.MaxStacks = ModUtil.Hades.PrintStackCapacity
+		screen.StackHeight = ModUtil.Hades.PrintStackHeight
+		PlaySound({ Name = "/SFX/Menu Sounds/DialoguePanelOutMenu" })
+		components.Background = CreateScreenComponent({ Name = "BlankObstacle", Group = "PrintStack", X = ScreenCenterX, Y = 2*ScreenCenterY})
+		components.Backing = CreateScreenComponent({ Name = "TraitTray_Center", Group = "PrintStack"})
+		Attach({ Id = components.Backing.Id, DestinationId = components.Background.Id, OffsetX = -180, OffsetY = 0 })
+		SetColor({ Id = components.Backing.Id, Color = {0.590, 0.555, 0.657, 0.8} })
+		SetScaleX({Id = components.Backing.Id, Fraction = 6.25})
+		SetScaleY({Id = components.Backing.Id, Fraction = 6/55*(2+screen.StackHeight)})
+		
+		thread( function()
+			while screen do
+				wait(0.5)
+				if screen.CullEnabled then
+					if screen.CullPrintStack then
+						orderPrintStack(screen,components)
+					end
+				end
+			end
+		end)
+		
+	end
+
+	if #screen.TextStack >= screen.MaxStacks then return end
+	
+	screen.CullEnabled = false
+	
+	local newText = {}
+	newText.obj = CreateScreenComponent({ Name = "rectangle01", Group = "PrintStack"})
+	newText.data = {Delay = delay, Text = text, Color = color, Bgcol = bgcol, Font = font, FontSize = fontsize}
+	SetColor({ Id = newText.obj.Id, Color = {0,0,0,0}})
+	table.insert(screen.TextStack, newText)
+	
+	PlaySound({ Name = sound })
+	
+	orderPrintStack(screen,components)
+	
+	screen.CullEnabled = true
+	
+end
+
+function ModUtil.Hades.PrintStackChunks( text, linespan, ... )
+	if not linespan then linespan = 90 end
+	for _,s in ipairs( ModUtil.String.Chunk( text, linespan, ModUtil.Hades.PrintStackCapacity ) ) do
+		ModUtil.Hades.PrintStack( s, ... )
+	end
+end
+
+-- Trigger Proxy
+
+local triggers = { }
+
+local function isTrigger( name )
+	if name:sub( 1, 2 ) ~= "On" then return false end
+	local func = _G[ name ]
+	return type( func ) == "function" and debug.getinfo( func, "S" ).what == "C"
+end
+
+local proxyTriggerMeta = {
+	__index = function( s, k )
+		if type( k ) == "string" then
+			local w, n = pcall( tonumber, k )
+			if w then k = n end
+		end
+		return rawget( s, k )
+	end,
+	__newindex = function( s, k, v )
+		if type( k ) == "string" then
+			local w, n = pcall( tonumber, k )
+			if w then k = n end
+		end
+		rawset( s, k, v )
+	end
+}
+
+local function proxyTriggerCallback( indexArray, func, args )
+	local t = ModUtil.IndexArray.Get( triggers, indexArray ) or setmetatable( { }, proxyTriggerMeta )
+	local n = #t + 1
+	local f = ModUtil.Override( func, function( ... )
+		return t[ n ].Call( ... )
+	end )
+	table.insert( t, { Args = args, Call = func } )
+	ModUtil.IndexArray.Set( triggers, indexArray, t )
+	return f
+end
+
+local function proxyTrigger( name )
+	ModUtil.IndexArray.Wrap( _G, { name }, function( base, args, ... )
+		local cargs = ModUtil.Table.Copy( args )
+		local func = table.remove( cargs )
+		local file = debug.getinfo( 2, "S" ).source
+		args[ #args ] = proxyTriggerCallback( { name, file }, func, cargs )
+		return base( args, ... )
+	end )
+end
+
+setmetatable( triggers, {
+	__newindex = function( s, k, v )
+		if v == true then
+			proxyTrigger( k )
+			v = s[ k ] or { }
+		end
+		rawset( s, k, v )
+	end
+} )
+ModUtil.Hades.Triggers = triggers
+ModUtil.Identifiers.Inverse[ triggers ] = "ModUtil.Hades.Triggers"
+
+--]==]
+
+-- Internal Access
+
+ModUtil.Internal = {}
