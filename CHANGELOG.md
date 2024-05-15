@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Moved ModUtil.Mod.Register and ModData to ModUtil.lua so it will be available earlier in the load order
+- Moved ModUtil.Hades.PrintStack config to dedicated module wide config
+- Moved to ReturnOfModding layout (still works on ModImporter)
+
+### Removed
+
+- Removed all menu handling capabilities from ModUtil.Hades
+- Removed ModUtil.Compat, which includes the old names, such as WrapBaseFunction
+
 ## [2.10.1] - 2024-04-24
 
 ### Added
