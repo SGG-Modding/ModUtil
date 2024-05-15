@@ -10,7 +10,7 @@ websiteUrl = "https://github.com/SGG-Modding/ModUtil"
 containsNsfwContent = false
 
 [package.dependencies]
-Hell2Modding-Hell2Modding = "1.0.21"
+Hell2Modding-Hell2Modding = "1.0.22"
 SGG_Modding-DemonDaemon = "1.0.0"
 
 [build]
