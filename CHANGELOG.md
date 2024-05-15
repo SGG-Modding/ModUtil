@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2024-05-15
+
 ### Added
 
 - Added interface as a ReturnOfModding plugin, with helpers to manage loading (e.g. on_ready_early)
@@ -28,5 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial Thunderstore release.
 
-[unreleased]: https://github.com/SGG-Modding/ModUtil/compare/2.10.1...HEAD
+[unreleased]: https://github.com/SGG-Modding/ModUtil/compare/3.0.0...HEAD
+[3.0.0]: https://github.com/SGG-Modding/ModUtil/compare/2.10.1...3.0.0
 [2.10.1]: https://github.com/SGG-Modding/ModUtil/compare/d8c6fac014fa9ff3ac2bcc38b5505c9bae1e71f7...2.10.1
