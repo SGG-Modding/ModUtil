@@ -74,7 +74,6 @@ local function closePrintStack()
 		printStack.KeepOpen = false
 		
 		CloseScreen(GetAllIds(printStack.Components),0)
-		closeFuncs["PrintStack"] = nil
 		printStack = nil
 	end
 end
@@ -166,7 +165,6 @@ function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, so
 	if not printStack then
 		first = true
 		printStack = { Components = {} }
-		closeFuncs["PrintStack"] = closePrintStack
 	end
 	local screen = printStack
 	local components = screen.Components
@@ -176,8 +174,8 @@ function ModUtil.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, so
 		screen.KeepOpen = true
 		screen.TextStack = {}
 		screen.CullPrintStack = false
-		screen.MaxStacks = ModUtil.Hades.PrintStackCapacity
-		screen.StackHeight = ModUtil.Hades.PrintStackHeight
+		screen.MaxStacks = ModUtil.Config.Hades.PrintStackCapacity
+		screen.StackHeight = ModUtil.Config.Hades.PrintStackHeight
 		PlaySound({ Name = "/SFX/Menu Sounds/DialoguePanelOutMenu" })
 		components.Background = CreateScreenComponent({ Name = "BlankObstacle", Group = "PrintStack", X = ScreenCenterX, Y = 2*ScreenCenterY})
 		components.Backing = CreateScreenComponent({ Name = "TraitTray_Center", Group = "PrintStack"})
@@ -219,7 +217,7 @@ end
 
 function ModUtil.Hades.PrintStackChunks( text, linespan, ... )
 	if not linespan then linespan = 90 end
-	for _,s in ipairs( ModUtil.String.Chunk( text, linespan, ModUtil.Hades.PrintStackCapacity ) ) do
+	for _,s in ipairs( ModUtil.String.Chunk( text, linespan, ModUtil.Config.Hades.PrintStackCapacity ) ) do
 		ModUtil.Hades.PrintStack( s, ... )
 	end
 end
@@ -294,8 +292,7 @@ end
 
 do
 	local ups = ModUtil.UpValues( function( )
-		return menuScreens, closeFuncs, forceClosed, printStack,
-			orderPrintStack, closePrintStack, printDisplay,
+		return printStack, orderPrintStack, closePrintStack, printDisplay,
 			triggers, isTrigger, proxyTrigger, proxyTriggerMeta, proxyTriggerCallback
 	end )
 	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )

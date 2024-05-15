@@ -2460,7 +2460,17 @@ end
 
 -- Management
 
+local pendingSaveIgnores = {}
+
 local function setSaveIgnore(key, ignore)
+	---@diagnostic disable-next-line: undefined-global
+	if not SaveIgnores and not GlobalSaveWhitelist then
+		pendingSaveIgnores[key] = ignore
+	else
+		for k,v in pairs(pendingSaveIgnores) do
+			setSaveIgnore(k,v)
+		end
+	end
 	---@diagnostic disable-next-line: undefined-global
 	if SaveIgnores then
 		---@diagnostic disable-next-line: undefined-global

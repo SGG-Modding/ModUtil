@@ -1,16 +1,11 @@
----@metaSGG_Modding-ModUtil-Early
+---@meta SGG_Modding-ModUtil-Mod
 
---[[
-	DOCUMENTATION FOR MODUTIL IS A WORK IN PROGRESS!
---]]
-_ENV = rom.game
-
----@aliasSGG_Modding-ModUtil-Early*-nil boolean|string|number|integer|function|table|thread|userdata|lightuserdata
+---@alias SGG_Modding-ModUtil-Mod*-nil boolean|string|number|integer|function|table|thread|userdata|lightuserdata
 
 --[[
 	DOCUMENTATION FOR MODUTIL IS A WORK IN PROGRESS!
 ]]
-ModUtil = {
+local mod = {
 	Mod = { },
 	Args = { },
 	String = { },
@@ -23,68 +18,68 @@ ModUtil = {
     Hades = { }
 }
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*getter fun(iter: table<K,V>, key: K): value: V?
+---@alias SGG_Modding-ModUtil-Mod*getter fun(iter: table<K,V>, key: K): value: V?
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*setter fun(iter: table<K,V>, key: K, value: V)
+---@alias SGG_Modding-ModUtil-Mod*setter fun(iter: table<K,V>, key: K, value: V)
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*length fun(iter: table<K,V>): length: integer
+---@alias SGG_Modding-ModUtil-Mod*length fun(iter: table<K,V>): length: integer
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*next fun(iter: table<K,V>, key: K?): key: K?, value: V?
+---@alias SGG_Modding-ModUtil-Mod*next fun(iter: table<K,V>, key: K?): key: K?, value: V?
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*inext fun(iter: table<K,V>, index: integer?): index: integer?, value: V?
+---@alias SGG_Modding-ModUtil-Mod*inext fun(iter: table<K,V>, index: integer?): index: integer?, value: V?
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*pairs fun(iter: table<K,V>): next:SGG_Modding-ModUtil-Early*next<K,V>, iter: table<K,V>
+---@alias SGG_Modding-ModUtil-Mod*pairs fun(iter: table<K,V>): next: SGG_Modding-ModUtil-Mod*next<K,V>, iter: table<K,V>
 
----@generic K :SGG_Modding-ModUtil-Early*-nil
+---@generic K : SGG_Modding-ModUtil-Mod*-nil
 ---@generic V : any
----@aliasSGG_Modding-ModUtil-Early*ipairs fun(iter: table<K,V>): inext:SGG_Modding-ModUtil-Early*inext<K,V>, iter: table<K,V>
+---@alias SGG_Modding-ModUtil-Mod*ipairs fun(iter: table<K,V>): inext: SGG_Modding-ModUtil-Mod*inext<K,V>, iter: table<K,V>
 
 -- base next, doesn't invoke __index
----@typeSGG_Modding-ModUtil-Early*next
+---@type SGG_Modding-ModUtil-Mod*next
 function rawnext( iter, key ) end
 
 -- next that does invoke __index
----@typeSGG_Modding-ModUtil-Early*next
+---@type SGG_Modding-ModUtil-Mod*next
 function next( iter, key ) end
 
 -- truly raw pairs, ignores __next and __pairs
----@typeSGG_Modding-ModUtil-Early*pairs
+---@type SGG_Modding-ModUtil-Mod*pairs
 function rawpairs( iter )
 	return rawnext, iter
 end
 
 -- quasi-raw pairs, invokes __next but ignores __pairs
----@typeSGG_Modding-ModUtil-Early*pairs
+---@type SGG_Modding-ModUtil-Mod*pairs
 function qrawpairs( iter )
     return next, iter
 end
 
 -- doesn't invoke __index just like rawnext
----@typeSGG_Modding-ModUtil-Early*inext
+---@type SGG_Modding-ModUtil-Mod*inext
 function rawinext( iter, index ) end
 
 -- invokes __inext just like the new next
----@typeSGG_Modding-ModUtil-Early*inext
+---@type SGG_Modding-ModUtil-Mod*inext
 function inext( iter, index ) end
 
 -- truly raw ipairs, ignores __inext and __ipairs
----@typeSGG_Modding-ModUtil-Early*ipairs
+---@type SGG_Modding-ModUtil-Mod*ipairs
 function rawipairs( t ) end
 
 -- quasi-raw ipairs, invokes __inext but ignores __ipairs
----@typeSGG_Modding-ModUtil-Early*ipairs
+---@type SGG_Modding-ModUtil-Mod*ipairs
 function qrawipairs( t ) end
 
 -- ignore __tostring (not thread safe?)
@@ -175,75 +170,75 @@ function table.rawconcat( list, sep, start, stop ) end
 function table.concat( list, sep, start, stop ) end
 
 ---@class Proxy
-ModUtil.Metatables.Proxy = {}
----@typeSGG_Modding-ModUtil-Early*getter
-function ModUtil.Metatables.Proxy:__index( key ) end
----@typeSGG_Modding-ModUtil-Early*setter
-function ModUtil.Metatables.Proxy:__newindex( key, value ) end
----@typeSGG_Modding-ModUtil-Early*length
-function ModUtil.Metatables.Proxy:__len() end
----@typeSGG_Modding-ModUtil-Early*next
-function ModUtil.Metatables.Proxy:__next( key ) end
----@typeSGG_Modding-ModUtil-Early*inext
-function ModUtil.Metatables.Proxy:__inext( index ) end
----@typeSGG_Modding-ModUtil-Early*pairs
-function ModUtil.Metatables.Proxy:__pairs( ) end
----@typeSGG_Modding-ModUtil-Early*ipairs
-function ModUtil.Metatables.Proxy:__ipairs( ) end
+mod.Metatables.Proxy = {}
+---@type SGG_Modding-ModUtil-Mod*getter
+function mod.Metatables.Proxy:__index( key ) end
+---@type SGG_Modding-ModUtil-Mod*setter
+function mod.Metatables.Proxy:__newindex( key, value ) end
+---@type SGG_Modding-ModUtil-Mod*length
+function mod.Metatables.Proxy:__len() end
+---@type SGG_Modding-ModUtil-Mod*next
+function mod.Metatables.Proxy:__next( key ) end
+---@type SGG_Modding-ModUtil-Mod*inext
+function mod.Metatables.Proxy:__inext( index ) end
+---@type SGG_Modding-ModUtil-Mod*pairs
+function mod.Metatables.Proxy:__pairs( ) end
+---@type SGG_Modding-ModUtil-Mod*ipairs
+function mod.Metatables.Proxy:__ipairs( ) end
 
----@generic K:SGG_Modding-ModUtil-Early*-nil
+---@generic K: SGG_Modding-ModUtil-Mod*-nil
 ---@generic V: any
 ---@param data table<K,V>
 ---@param meta table?
 ---@return Proxy<K,V> proxy
-function ModUtil.Proxy( data, meta ) end
+function mod.Proxy( data, meta ) end
 
 ---@class Raw: Proxy
-ModUtil.Metatables.Raw = {}
+mod.Metatables.Raw = {}
 
----@generic K:SGG_Modding-ModUtil-Early*-nil
+---@generic K: SGG_Modding-ModUtil-Mod*-nil
 ---@generic V: any
 ---@param data table<K,V>
 ---@return Raw<K,V> proxy
-function ModUtil.Raw( data ) end
+function mod.Raw( data ) end
 
 -- Operations on Callables
 
 ---@overload fun(_: any, obj: table): boolean
-ModUtil.Callable = { Func = { } }
+mod.Callable = { Func = { } }
 
 ---@param obj table | function
 ---@return table? parent
 ---@return table | function? call
-function ModUtil.Callable.Get( obj ) end
+function mod.Callable.Get( obj ) end
 
 ---@param obj table | function
 ---@param call function
 ---@return table? parent
 ---@return table | function? call
-function ModUtil.Callable.Set( obj, call ) end
+function mod.Callable.Set( obj, call ) end
 
 ---@generic C: table|function
 ---@param obj C
 ---@param mcall fun(call:C, ...): C
 ---@return table? parent
 ---@return C? call
-function ModUtil.Callable.Map( obj, mcall, ... ) end
+function mod.Callable.Map( obj, mcall, ... ) end
 
 ---@param obj table | function
 ---@return table | function? call
-function ModUtil.Callable.Func.Get( obj ) end
+function mod.Callable.Func.Get( obj ) end
 
 ---@param obj table | function
 ---@param call function
 ---@return table | function? call
-function ModUtil.Callable.Func.Set( obj, call ) end
+function mod.Callable.Func.Set( obj, call ) end
 
 ---@generic C: table|function
 ---@param obj C
 ---@param mcall fun(call:C, ...): C
 ---@return C? call
-function ModUtil.Callable.Func.Map( obj, mcall, ... ) end
+function mod.Callable.Func.Map( obj, mcall, ... ) end
 
 -- Data Misc
 
@@ -252,29 +247,29 @@ function ModUtil.Callable.Func.Map( obj, mcall, ... ) end
 ---@param map fun(input: I): output: O
 ---@param ... I
 ---@return O ...
-function ModUtil.Args.Map( map, ... ) end
+function mod.Args.Map( map, ... ) end
 
 ---@generic A: any
 ---@param n integer
 ---@param ... A
 ---@return A ...
-function ModUtil.Args.Take( n, ... ) end
+function mod.Args.Take( n, ... ) end
 
 --- TODO: ...
 
 --[==[
 
-function ModUtil.Args.Drop( n, ... )
+function mod.Args.Drop( n, ... )
 	local args = table.pack( ... )
 	return table.rawunpack( args, n + 1, args.n )
 end
 
-function ModUtil.Args.Join( args, ... )
-	local args = ModUtil.Array.Join( args, table.pack( ... ) )
+function mod.Args.Join( args, ... )
+	local args = mod.Array.Join( args, table.pack( ... ) )
 	return table.rawunpack( args )
 end
 
-function ModUtil.Table.Map( tbl, map )
+function mod.Table.Map( tbl, map )
 	local out = { }
 	for k, v in pairs( tbl ) do
 		out[ k ] = map( v )
@@ -282,13 +277,13 @@ function ModUtil.Table.Map( tbl, map )
 	return out
 end
 
-function ModUtil.Table.Mutate( tbl, map )
+function mod.Table.Mutate( tbl, map )
 	for k, v in pairs( tbl ) do
 		tbl[ k ] = map( v )
 	end
 end
 
-function ModUtil.Table.Replace( target, data )
+function mod.Table.Replace( target, data )
 	for k in pairs( target ) do
 		target[ k ] = data[ k ]
 	end
@@ -297,7 +292,7 @@ function ModUtil.Table.Replace( target, data )
 	end
 end
 
-function ModUtil.Table.UnKeyed( tbl )
+function mod.Table.UnKeyed( tbl )
 	local n = #tbl
 	for k in pairs( tbl ) do
 		if type( k ) ~= "number" or k > n or k < 1 or k ~= math.floor(k) then return false end
@@ -306,11 +301,11 @@ function ModUtil.Table.UnKeyed( tbl )
 end
 
 
-function ModUtil.String.Join( sep, ... )
+function mod.String.Join( sep, ... )
 	return table.rawconcat( table.pack( ... ), sep )
 end
 
-function ModUtil.String.Chunk( text, chunkSize, maxChunks )
+function mod.String.Chunk( text, chunkSize, maxChunks )
 	local chunks = { "" }
 	local cs = 0
 	local ncs = 1
@@ -346,26 +341,26 @@ local function literalString( str )
 	return "'" .. str .. "'"
 end
 
-ModUtil.ToString = ModUtil.Callable.Set( { }, function( _, o )
+mod.ToString = mod.Callable.Set( { }, function( _, o )
 	---@type boolean|string
-	local identifier = o ~= nil and ModUtil.Identifiers.Data[ o ]
+	local identifier = o ~= nil and mod.Identifiers.Data[ o ]
 	identifier = identifier and identifier .. ": " or ""
-	return identifier .. ModUtil.ToString.Static( o )
+	return identifier .. mod.ToString.Static( o )
 end )
 
-function ModUtil.ToString.Address( o )
+function mod.ToString.Address( o )
 	local t = type( o )
 	if t == "string" or passByValueTypes[ t ] then return nil end
 	return rawtostring( o ):match( ": 0*([0-9A-F]*)" )
 end
 
-function ModUtil.ToString.Static( o )
+function mod.ToString.Static( o )
 	local t = type( o )
 	if t == "string" or passByValueTypes[ t ] then return tostring( o ) end
 	return tostring( o ):gsub( ": 0*", ": ", 1 )
 end
 
-function ModUtil.ToString.Value( o )
+function mod.ToString.Value( o )
 	local t = type( o )
 	if t == 'string' then
 		return literalString( o )
@@ -373,10 +368,10 @@ function ModUtil.ToString.Value( o )
 	if passByValueTypes[ t ] then
 		return tostring( o )
 	end
-	return '<' .. ModUtil.ToString( o ) .. '>'
+	return '<' .. mod.ToString( o ) .. '>'
 end
 
-function ModUtil.ToString.Key( o )
+function mod.ToString.Key( o )
 	local t = type( o )
 	if t == 'string' then
 		if not excludedFieldNames[ o ] and o:match( "^[a-zA-Z_][a-zA-Z0-9_]*$" ) then
@@ -387,22 +382,22 @@ function ModUtil.ToString.Key( o )
 	if passByValueTypes[ t ] then
 		return "[" .. tostring( o ) .. "]"
 	end
-    return '<' .. ModUtil.ToString( o ) .. '>'
+    return '<' .. mod.ToString( o ) .. '>'
 end
 
-function ModUtil.ToString.TableKeys( o )
+function mod.ToString.TableKeys( o )
 	if type( o ) == 'table' then
 		local out = { }
 		for k in pairs( o ) do
-			rawinsert( out , ModUtil.ToString.Key( k ) )
+			rawinsert( out , mod.ToString.Key( k ) )
 		end
 		return rawconcat( out, ',' )
 	end
 end
 
 local function isNamespace( obj )
-	return obj == _ENV_ORIGINAL or obj == _ENV_REPLACED or obj == objectData or ModUtil.Mods.Inverse[ obj ]
-		or ( getmetatable( obj ) == ModUtil.Metatables.Raw and isNamespace( objectData[ obj ][ "data" ] ) )
+	return obj == _ENV_ORIGINAL or obj == _ENV_REPLACED or obj == objectData or mod.Mods.Inverse[ obj ]
+		or ( getmetatable( obj ) == mod.Metatables.Raw and isNamespace( objectData[ obj ][ "data" ] ) )
 end
 
 local function isNotNamespace( obj )
@@ -411,7 +406,7 @@ end
 
 local showTableAddrs = false
 
-local repk, repv = ModUtil.ToString.Key, ModUtil.ToString.Value
+local repk, repv = mod.ToString.Key, mod.ToString.Value
 
 local function deepLoop( o, limit, dlimit, indent, seen, cond, depth )
 	depth = depth or 0
@@ -478,64 +473,64 @@ local function deepLoop( o, limit, dlimit, indent, seen, cond, depth )
 	return limit, rawconcat( out, ',' .. ( indent and '\n' .. _indent .. indent or ' ' ) )
 end
 
-function ModUtil.ToString.Shallow( object, limit, indent )
+function mod.ToString.Shallow( object, limit, indent )
 	local _, out = deepLoop( object, limit, 1, indent )
 	return out
 end
 
-ModUtil.ToString.Deep = ModUtil.Callable.Set( { }, function( _, object, limit, depth, indent )
+mod.ToString.Deep = mod.Callable.Set( { }, function( _, object, limit, depth, indent )
 	local _, out = deepLoop( object, limit, depth, indent, { } )
 	return out
 end )
 
 
-function ModUtil.ToString.Deep.NoNamespaces( object, limit, depth, indent )
+function mod.ToString.Deep.NoNamespaces( object, limit, depth, indent )
 	local _, out = deepLoop( object, limit, depth, indent, { }, isNotNamespace )
 	return out
 end
 
-function ModUtil.ToString.Deep.Namespaces( object, limit, depth, indent )
+function mod.ToString.Deep.Namespaces( object, limit, depth, indent )
 	local _, out = deepLoop( object, limit, depth, indent, { }, isNamespace )
 	return out
 end
 
 -- Print
 
-ModUtil.Print = ModUtil.Callable.Set( { }, function ( _, ... )
+mod.Print = mod.Callable.Set( { }, function ( _, ... )
 	print( ... )
 	---@diagnostic disable-next-line: undefined-global
-	if DebugPrint then ModUtil.Print.Debug( ... ) end
+	if DebugPrint then mod.Print.Debug( ... ) end
 	if io then
 		if io.stdout ~= io.output( ) then
-			ModUtil.Print.ToFile( io.output( ), ... )
+			mod.Print.ToFile( io.output( ), ... )
 			io.flush( )
 		end
 	end
 end )
 
-function ModUtil.Print.ToFile( file, ... )
+function mod.Print.ToFile( file, ... )
 	local close = false
 	if type( file ) == "string" and io then
 		file = io.open( file, "a" )
 		close = true
 	end
-	file:write( ModUtil.Args.Map( tostring, ... ) )
+	file:write( mod.Args.Map( tostring, ... ) )
 	if close then
 		file:close( )
 	end
 end
 
-function ModUtil.Print.Debug( ... )
-	local text = ModUtil.String.Join( "\t", ModUtil.Args.Map( tostring, ... ) ):gsub( "\t", "    " )
+function mod.Print.Debug( ... )
+	local text = mod.String.Join( "\t", mod.Args.Map( tostring, ... ) ):gsub( "\t", "    " )
 	for line in text:gmatch( "([^\n]+)" ) do
 		---@diagnostic disable-next-line: undefined-global
 		DebugPrint{ Text = line }
 	end
 end
 
-function ModUtil.Print.Traceback( level )
+function mod.Print.Traceback( level )
 	level = (level or 1) + 1
-	ModUtil.Print("Traceback:")
+	mod.Print("Traceback:")
 	local cont = true
 	while cont do
 		local text = debug.traceback( "", level ):sub( 2 )
@@ -553,7 +548,7 @@ function ModUtil.Print.Traceback( level )
 					cont = true
 					break
 				end
-				ModUtil.Print( line )
+				mod.Print( line )
 				i = i + 1
 			end
 		end
@@ -561,48 +556,48 @@ function ModUtil.Print.Traceback( level )
 	end
 end
 
-function ModUtil.Print.DebugInfo( level )
+function mod.Print.DebugInfo( level )
 	level = level or 1
 	local text
-	text = ModUtil.ToString.Deep( debug.getinfo( level + 1 ) )
-	ModUtil.Print( "Debug Info:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	text = mod.ToString.Deep( debug.getinfo( level + 1 ) )
+	mod.Print( "Debug Info:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
-function ModUtil.Print.Namespaces( level )
+function mod.Print.Namespaces( level )
 	level = level or 1
 	local text
-	ModUtil.Print("Namespaces:")
-	text = ModUtil.ToString.Deep.Namespaces( ModUtil.Locals( level + 1 ) )
-	ModUtil.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.Deep.Namespaces( ModUtil.UpValues( level + 1 ) )
-	ModUtil.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.Deep.Namespaces( _G )
-	ModUtil.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	mod.Print("Namespaces:")
+	text = mod.ToString.Deep.Namespaces( mod.Locals( level + 1 ) )
+	mod.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	text = mod.ToString.Deep.Namespaces( mod.UpValues( level + 1 ) )
+	mod.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	text = mod.ToString.Deep.Namespaces( _G )
+	mod.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
-function ModUtil.Print.Variables( level )
+function mod.Print.Variables( level )
 	level = level or 1
 	local text
-	ModUtil.Print("Variables:")
-	text = ModUtil.ToString.Deep.NoNamespaces( ModUtil.Locals( level + 1 ) )
-	ModUtil.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.Deep.NoNamespaces( ModUtil.UpValues( level + 1 ) )
-	ModUtil.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
-	text = ModUtil.ToString.Deep.NoNamespaces( _G )
-	ModUtil.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	mod.Print("Variables:")
+	text = mod.ToString.Deep.NoNamespaces( mod.Locals( level + 1 ) )
+	mod.Print( "\t" .. "Locals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	text = mod.ToString.Deep.NoNamespaces( mod.UpValues( level + 1 ) )
+	mod.Print( "\t" .. "UpValues:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
+	text = mod.ToString.Deep.NoNamespaces( _G )
+	mod.Print( "\t" .. "Globals:" .. "\t" .. text:sub( 1 + text:find( ">" ) ) )
 end
 
 --[[
 	Call a function with the provided arguments
 	instead of halting when an error occurs it prints the entire error traceback
 --]]
-function ModUtil.DebugCall( f, ... )
+function mod.DebugCall( f, ... )
 	return xpcall( f, function( err )
-		ModUtil.Print( err )
-		ModUtil.Print.DebugInfo( 2 )
-		--ModUtil.Print.Namespaces( 2 )
-		--ModUtil.Print.Variables( 2 )
-		ModUtil.Print.Traceback( 2 )
+		mod.Print( err )
+		mod.Print.DebugInfo( 2 )
+		--mod.Print.Namespaces( 2 )
+		--mod.Print.Variables( 2 )
+		mod.Print.Traceback( 2 )
     end, ... )
 end
 
@@ -616,7 +611,7 @@ end
 		meaning 0 corresponds to the start of the array
 		and -1 corresponds to the end
 --]]
-function ModUtil.Array.Slice( state, start, stop, step )
+function mod.Array.Slice( state, start, stop, step )
 	local slice = { }
 	local n = #state
 	start = start or 0
@@ -633,7 +628,7 @@ function ModUtil.Array.Slice( state, start, stop, step )
 	return slice
 end
 
-function ModUtil.Array.Copy( a )
+function mod.Array.Copy( a )
 	return { table.unpack( a ) }
 end
 
@@ -642,9 +637,9 @@ end
 
 	a, ... - the arrays
 --]]
-function ModUtil.Array.Join( a, ... )
+function mod.Array.Join( a, ... )
 	local b = ...
-	if not b then return ModUtil.Array.Copy( a ) end
+	if not b then return mod.Array.Copy( a ) end
 	local c = { }
 	local j = 0
 	for i, v in ipairs( a ) do
@@ -654,10 +649,10 @@ function ModUtil.Array.Join( a, ... )
 	for i, v in ipairs( b ) do
 		c[ i + j ] = v
 	end
-	return ModUtil.Array.Join( c, ModUtil.Args.Drop( 1, ... ) )
+	return mod.Array.Join( c, mod.Args.Drop( 1, ... ) )
 end
 
-ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( _, t )
+mod.Table.Copy = mod.Callable.Set( { }, function( _, t )
 	local c = { }
 	for k, v in pairs( t ) do
 		c[ k ] = v
@@ -665,25 +660,25 @@ ModUtil.Table.Copy = ModUtil.Callable.Set( { }, function( _, t )
 	return c
 end )
 
-function ModUtil.Table.Copy.Deep( t )
+function mod.Table.Copy.Deep( t )
 	local c = { }
 	for k, v in pairs( t ) do
 		if type( v ) == "table" then
-			v = ModUtil.Table.Copy( v )
+			v = mod.Table.Copy( v )
 		end
 		c[ k ] = v
 	end
 	return c
 end
 
-function ModUtil.Table.Clear( t )
+function mod.Table.Clear( t )
 	for k in pairs( t ) do
 		t[ k ] = nil
 	end
 	return t
 end
 
-function ModUtil.Table.Transpose( t )
+function mod.Table.Transpose( t )
 	local i = { }
 	for k, v in pairs( t ) do
 		i[ v ] = k
@@ -691,9 +686,9 @@ function ModUtil.Table.Transpose( t )
 	return i
 end
 
-function ModUtil.Table.Flip( t )
-	local i = ModUtil.Table.Transpose( t )
-	ModUtil.Table.Clear( t )
+function mod.Table.Flip( t )
+	local i = mod.Table.Transpose( t )
+	mod.Table.Clear( t )
 	for k, v in pairs( i ) do
 		t[ k ] = v
 	end
@@ -732,11 +727,11 @@ end
 		}
 	}
 --]]
-function ModUtil.Table.NilMerge( inTable, nilTable )
+function mod.Table.NilMerge( inTable, nilTable )
 	for nilKey, nilVal in pairs( nilTable ) do
 		local inVal = inTable[ nilKey ]
 		if type( nilVal ) == "table" and type( inVal ) == "table" then
-			ModUtil.Table.NilMerge( inVal, nilVal )
+			mod.Table.NilMerge( inVal, nilVal )
 		else
 			inTable[ nilKey ] = nil
 		end
@@ -771,11 +766,11 @@ end
 		}
 	}
 --]]
-function ModUtil.Table.Merge( inTable, setTable )
+function mod.Table.Merge( inTable, setTable )
 	for setKey, setVal in pairs( setTable ) do
 		local inVal = inTable[ setKey ]
 		if type( setVal ) == "table" and type( inVal ) == "table" then
-			ModUtil.Table.Merge( inVal, setVal )
+			mod.Table.Merge( inVal, setVal )
 		else
 			inTable[ setKey ] = setVal
 		end
@@ -783,14 +778,14 @@ function ModUtil.Table.Merge( inTable, setTable )
 	return inTable
 end
 
-function ModUtil.Table.MergeKeyed( inTable, setTable )
+function mod.Table.MergeKeyed( inTable, setTable )
 	for setKey, setVal in pairs( setTable ) do
 		local inVal = inTable[ setKey ]
 		if type( setVal ) == "table" and type( inVal ) == "table" then
-			if ModUtil.Table.UnKeyed( setVal ) and ModUtil.Table.UnKeyed( inVal ) then
-				ModUtil.Table.Replace( inVal, setVal )
+			if mod.Table.UnKeyed( setVal ) and mod.Table.UnKeyed( inVal ) then
+				mod.Table.Replace( inVal, setVal )
 			else
-				ModUtil.Table.MergeKeyed( inVal, setVal )
+				mod.Table.MergeKeyed( inVal, setVal )
 			end
 		else
 			inTable[ setKey ] = setVal
@@ -813,15 +808,15 @@ end
 	Table			 - the table to retrieve from
 	indexArray	- the list of indices
 --]]
-function ModUtil.IndexArray.Get( baseTable, indexArray )
+function mod.IndexArray.Get( baseTable, indexArray )
 	local node = baseTable
 	for _, key in ipairs( indexArray ) do
 		if type( node ) ~= "table" then
 			return nil
 		end
-		local nodeType = ModUtil.Node.Inverse[ key ]
+		local nodeType = mod.Node.Inverse[ key ]
 		if nodeType then
-			node = ModUtil.Node.Data[ nodeType ].Get( node )
+			node = mod.Node.Data[ nodeType ].Get( node )
 		else
 			node = node[ key ]
 		end
@@ -843,7 +838,7 @@ end
 	indexArray	- the list of indices
 	value	- the value to add
 --]]
-function ModUtil.IndexArray.Set( baseTable, indexArray, value )
+function mod.IndexArray.Set( baseTable, indexArray, value )
 	if next( indexArray ) == nil then
 		return false -- can't set the input argument
 	end
@@ -851,50 +846,50 @@ function ModUtil.IndexArray.Set( baseTable, indexArray, value )
 	local node = baseTable
 	for i = 1, n - 1 do
 		local key = indexArray[ i ]
-		if not ModUtil.Node.New( node, key ) then return false end
-		local nodeType = ModUtil.Node.Inverse[ key ]
+		if not mod.Node.New( node, key ) then return false end
+		local nodeType = mod.Node.Inverse[ key ]
 		if nodeType then
-			node = ModUtil.Node.Data[ nodeType ].Get( node )
+			node = mod.Node.Data[ nodeType ].Get( node )
 		else
 			node = node[ key ]
 		end
 	end
 	local key = indexArray[ n ]
-	local nodeType = ModUtil.Node.Inverse[ key ]
+	local nodeType = mod.Node.Inverse[ key ]
 	if nodeType then
-		return ModUtil.Node.Data[ nodeType ].Set( node, value )
+		return mod.Node.Data[ nodeType ].Set( node, value )
 	end
 	node[ key ] = value
 	return true
 end
 
-function ModUtil.IndexArray.Map( baseTable, indexArray, map, ... )
-	return ModUtil.IndexArray.Set( baseTable, indexArray, map( ModUtil.IndexArray.Get( baseTable, indexArray ), ... ) )
+function mod.IndexArray.Map( baseTable, indexArray, map, ... )
+	return mod.IndexArray.Set( baseTable, indexArray, map( mod.IndexArray.Get( baseTable, indexArray ), ... ) )
 end
 
 -- Path Manipulation
 
-function ModUtil.Path.Join( p, ... )
+function mod.Path.Join( p, ... )
 	local q = ...
 	if not q then return p end
-	if p == '' then return ModUtil.Path.Join( q, ModUtil.Args.Drop( 1, ... ) ) end
-	if q == '' then return ModUtil.Path.Join( p, ModUtil.Args.Drop( 1, ... ) ) end
-	return ModUtil.Path.Join( p .. '.' .. q, ModUtil.Args.Drop( 1, ... ) )
+	if p == '' then return mod.Path.Join( q, mod.Args.Drop( 1, ... ) ) end
+	if q == '' then return mod.Path.Join( p, mod.Args.Drop( 1, ... ) ) end
+	return mod.Path.Join( p .. '.' .. q, mod.Args.Drop( 1, ... ) )
 end
 
-function ModUtil.Path.Map( path, map, ... )
-	return ModUtil.IndexArray.Map( _G, ModUtil.Path.IndexArray( path ), map, ... )
+function mod.Path.Map( path, map, ... )
+	return mod.IndexArray.Map( _G, mod.Path.IndexArray( path ), map, ... )
 end
 
 --[[
 	Create an index array from the provided Path.
 
 	The returned array can be used as an argument to the safe table
-	manipulation functions, such as ModUtil.IndexArray.Set and ModUtil.IndexArray.Get.
+	manipulation functions, such as mod.IndexArray.Set and mod.IndexArray.Get.
 
 	path - a dot-separated string that represents a path into a table
 --]]
-function ModUtil.Path.IndexArray( path )
+function mod.Path.IndexArray( path )
 	if type( path ) == "table" then return path end -- assume index array is given
 	local s = ""
 	local i = { }
@@ -915,29 +910,29 @@ end
 --[[
 	Safely get a value from a Path.
 
-	For example, ModUtil.Path.Get( "a.b.c" ) returns a.b.c.
+	For example, mod.Path.Get( "a.b.c" ) returns a.b.c.
 	If either a or a.b is nil, nil is returned instead.
 
 	path - the path to get the value
 	base - (optional) The table to retreive the value from.
 				 If not provided, retreive a global.
 --]]
-function ModUtil.Path.Get( path, base )
-	return ModUtil.IndexArray.Get( base or _G, ModUtil.Path.IndexArray( path ) )
+function mod.Path.Get( path, base )
+	return mod.IndexArray.Get( base or _G, mod.Path.IndexArray( path ) )
 end
 
 --[[
 	Safely get set a value to a Path.
 
-	For example, ModUtil.Path.Set( "a.b.c", 1 ) sets a.b.c = 1.
+	For example, mod.Path.Set( "a.b.c", 1 ) sets a.b.c = 1.
 	If either a or a.b is nil, they are created.
 
 	path - the path to get the value
 	base - (optional) The table to retreive the value from.
 				 If not provided, retreive a global.
 --]]
-function ModUtil.Path.Set( path, value, base )
-	return ModUtil.IndexArray.Set( base or _G, ModUtil.Path.IndexArray( path ), value )
+function mod.Path.Set( path, value, base )
+	return mod.IndexArray.Set( base or _G, mod.Path.IndexArray( path ), value )
 end
 
 -- Metaprogramming Shenanigans
@@ -1011,7 +1006,7 @@ for k, v in pairs( stackLevelFunction ) do
 	stackLevelFunction[ k ] = true
 end
 
-ModUtil.Metatables.StackLevel = {
+mod.Metatables.StackLevel = {
 	__index = function( self, key )
 		if stackLevelProperty[ key ] then
 			return stackLevelInterface[ key ]( self )
@@ -1046,7 +1041,7 @@ ModUtil.Metatables.StackLevel = {
 	end
 }
 
-function ModUtil.StackLevel( level )
+function mod.StackLevel( level )
 	level = ( level or 1 )
 	local thread = coroutine.running( )
 	local size = level + 1
@@ -1056,13 +1051,13 @@ function ModUtil.StackLevel( level )
 	end
 	size = size - level - 1
 	if size > 0 then
-		return ModUtil.Proxy( { level = level, size = size, thread = thread }, ModUtil.Metatables.StackLevel )
+		return mod.Proxy( { level = level, size = size, thread = thread }, mod.Metatables.StackLevel )
 	end
 end
 
-ModUtil.Metatables.StackLevels = {
+mod.Metatables.StackLevels = {
 	__index = function( self, level )
-		return ModUtil.StackLevel( ( level or 0 ) + objectData[ self ][ "level" ].here )
+		return mod.StackLevel( ( level or 0 ) + objectData[ self ][ "level" ].here )
 	end,
 	__newindex = function( ) end,
 	__len = function( self )
@@ -1079,17 +1074,17 @@ ModUtil.Metatables.StackLevels = {
 		return qrawpairs( self ), self
 	end
 }
-ModUtil.Metatables.StackLevels.__ipairs = ModUtil.Metatables.StackLevels.__pairs
-ModUtil.Metatables.StackLevels.__inext = ModUtil.Metatables.StackLevels.__next
+mod.Metatables.StackLevels.__ipairs = mod.Metatables.StackLevels.__pairs
+mod.Metatables.StackLevels.__inext = mod.Metatables.StackLevels.__next
 
-function ModUtil.StackLevels( level )
-	return ModUtil.Proxy( { level = ModUtil.StackLevel( level or 0 ) }, ModUtil.Metatables.StackLevels )
+function mod.StackLevels( level )
+	return mod.Proxy( { level = mod.StackLevel( level or 0 ) }, mod.Metatables.StackLevels )
 end
 
 
 local excludedUpValueNames = toLookup{ "_ENV" }
 
-ModUtil.Metatables.UpValues = {
+mod.Metatables.UpValues = {
 	__index = function( self, name )
 		if excludedUpValueNames[ name ] then return end
 		local func = objectData[ self ][ "func" ]
@@ -1145,11 +1140,11 @@ ModUtil.Metatables.UpValues = {
 	end
 }
 
-ModUtil.UpValues = ModUtil.Callable.Set( { }, function( _, func )
+mod.UpValues = mod.Callable.Set( { }, function( _, func )
 	if type( func ) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues )
+	return mod.Proxy( { func = func }, mod.Metatables.UpValues )
 end )
 
 local idData = { }
@@ -1177,7 +1172,7 @@ function debug.upvaluejoin( f1, n1, f2, n2 )
 	setUpValueIdData( debug.upvalueid( f1, n1 ), f2, n2 )
 end
 
-ModUtil.Metatables.UpValues.Ids = {
+mod.Metatables.UpValues.Ids = {
 	__index = function( self, idx )
 		local func = objectData[ self ][ "func" ]
 		local name = debug.getupvalue( func, idx )
@@ -1216,17 +1211,17 @@ ModUtil.Metatables.UpValues.Ids = {
 		return qrawpairs( self )
 	end
 }
-ModUtil.Metatables.UpValues.Ids.__inext = ModUtil.Metatables.UpValues.Ids.__next
-ModUtil.Metatables.UpValues.Ids.__ipairs = ModUtil.Metatables.UpValues.Ids.__pairs
+mod.Metatables.UpValues.Ids.__inext = mod.Metatables.UpValues.Ids.__next
+mod.Metatables.UpValues.Ids.__ipairs = mod.Metatables.UpValues.Ids.__pairs
 
-function ModUtil.UpValues.Ids( func )
+function mod.UpValues.Ids( func )
 	if type(func) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues.Ids )
+	return mod.Proxy( { func = func }, mod.Metatables.UpValues.Ids )
 end
 
-ModUtil.Metatables.UpValues.Values = {
+mod.Metatables.UpValues.Values = {
 	__index = function( self, idx )
 		local name, value = debug.getupvalue( objectData[ self ][ "func" ], idx )
 		if name and not excludedUpValueNames[ name ] then
@@ -1257,19 +1252,19 @@ ModUtil.Metatables.UpValues.Values = {
 			end
 		end
 	end,
-	__pairs = ModUtil.Metatables.UpValues.Ids.__pairs,
-	__ipairs = ModUtil.Metatables.UpValues.Ids.__ipairs
+	__pairs = mod.Metatables.UpValues.Ids.__pairs,
+	__ipairs = mod.Metatables.UpValues.Ids.__ipairs
 }
-ModUtil.Metatables.UpValues.Values.__inext = ModUtil.Metatables.UpValues.Values.__next
+mod.Metatables.UpValues.Values.__inext = mod.Metatables.UpValues.Values.__next
 
-function ModUtil.UpValues.Values( func )
+function mod.UpValues.Values( func )
 	if type(func) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues.Values )
+	return mod.Proxy( { func = func }, mod.Metatables.UpValues.Values )
 end
 
-ModUtil.Metatables.UpValues.Names = {
+mod.Metatables.UpValues.Names = {
 	__index = function( self, idx )
 		local name = debug.getupvalue( objectData[ self ][ "func" ], idx )
 		if name and not excludedUpValueNames[ name ] then
@@ -1277,7 +1272,7 @@ ModUtil.Metatables.UpValues.Names = {
 		end
 	end,
 	__newindex = function( ) end,
-	__len = ModUtil.Metatables.UpValues.Values.__len,
+	__len = mod.Metatables.UpValues.Values.__len,
 	__next = function ( self, idx )
 		local func = objectData[ self ][ "func" ]
 		idx = idx or 0
@@ -1291,19 +1286,19 @@ ModUtil.Metatables.UpValues.Names = {
 			end
 		end
 	end,
-	__pairs = ModUtil.Metatables.UpValues.Ids.__pairs,
-	__ipairs = ModUtil.Metatables.UpValues.Ids.__ipairs
+	__pairs = mod.Metatables.UpValues.Ids.__pairs,
+	__ipairs = mod.Metatables.UpValues.Ids.__ipairs
 }
-ModUtil.Metatables.UpValues.Names.__inext = ModUtil.Metatables.UpValues.Names.__next
+mod.Metatables.UpValues.Names.__inext = mod.Metatables.UpValues.Names.__next
 
-function ModUtil.UpValues.Names( func )
+function mod.UpValues.Names( func )
 	if type(func) ~= "function" then
 		func = debug.getinfo( ( func or 1 ) + 1, "f" ).func
 	end
-	return ModUtil.Proxy( { func = func }, ModUtil.Metatables.UpValues.Names )
+	return mod.Proxy( { func = func }, mod.Metatables.UpValues.Names )
 end
 
-ModUtil.Metatables.UpValues.Stacked = {
+mod.Metatables.UpValues.Stacked = {
 	__index = function( self, name )
 		if excludedUpValueNames[ name ] then return end
 		for _, level in pairs( objectData[ self ][ "levels" ] ) do
@@ -1363,13 +1358,13 @@ ModUtil.Metatables.UpValues.Stacked = {
 	end
 }
 
-function ModUtil.UpValues.Stacked( level )
-	return ModUtil.Proxy( { levels = ModUtil.StackLevels( ( level or 1 ) ) }, ModUtil.Metatables.UpValues.Stacked )
+function mod.UpValues.Stacked( level )
+	return mod.Proxy( { levels = mod.StackLevels( ( level or 1 ) ) }, mod.Metatables.UpValues.Stacked )
 end
 
 local excludedLocalNames = toLookup{ "(*temporary)", "(for generator)", "(for state)", "(for control)" }
 
-ModUtil.Metatables.Locals = {
+mod.Metatables.Locals = {
 	__index = function( self, name )
 		if excludedLocalNames[ name ] then return end
 		local level = objectData[ self ][ "level" ]
@@ -1425,11 +1420,11 @@ ModUtil.Metatables.Locals = {
 	end
 }
 
-ModUtil.Locals = ModUtil.Callable.Set( { }, function( _, level )
-	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals )
+mod.Locals = mod.Callable.Set( { }, function( _, level )
+	return mod.Proxy( { level = mod.StackLevel( ( level or 1 ) + 1 ) }, mod.Metatables.Locals )
 end )
 
-ModUtil.Metatables.Locals.Values = {
+mod.Metatables.Locals.Values = {
 	__index = function( self, idx )
 		local name, value = objectData[ self ][ "level" ].getlocal( idx )
 		if name then
@@ -1469,20 +1464,20 @@ ModUtil.Metatables.Locals.Values = {
 		return qrawpairs( self ), self
 	end,
 }
-ModUtil.Metatables.Locals.Values.__ipairs = ModUtil.Metatables.Locals.Values.__pairs
-ModUtil.Metatables.Locals.Values.__inext = ModUtil.Metatables.Locals.Values.__next
+mod.Metatables.Locals.Values.__ipairs = mod.Metatables.Locals.Values.__pairs
+mod.Metatables.Locals.Values.__inext = mod.Metatables.Locals.Values.__next
 
 --[[
 	Example Use:
-	for i, value in pairs( ModUtil.Locals.Values( level ) ) do
+	for i, value in pairs( mod.Locals.Values( level ) ) do
 		-- stuff
 	end
 --]]
-function ModUtil.Locals.Values( level )
-	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals.Values )
+function mod.Locals.Values( level )
+	return mod.Proxy( { level = mod.StackLevel( ( level or 1 ) + 1 ) }, mod.Metatables.Locals.Values )
 end
 
-ModUtil.Metatables.Locals.Names = {
+mod.Metatables.Locals.Names = {
 	__index = function( self, idx )
 		local name = objectData[ self ][ "level" ].getlocal( idx )
 		if name then
@@ -1492,7 +1487,7 @@ ModUtil.Metatables.Locals.Names = {
 		end
 	end,
 	__newindex = function( ) end,
-	__len = ModUtil.Metatables.Locals.Values.__len,
+	__len = mod.Metatables.Locals.Values.__len,
 	__next = function( self, idx )
 		if idx == nil then idx = 0 end
 		idx = idx + 1
@@ -1507,20 +1502,20 @@ ModUtil.Metatables.Locals.Names = {
 		return qrawpairs( self ), self
 	end,
 }
-ModUtil.Metatables.Locals.Names.__ipairs = ModUtil.Metatables.Locals.Names.__pairs
-ModUtil.Metatables.Locals.Names.__inext = ModUtil.Metatables.Locals.Names.__next
+mod.Metatables.Locals.Names.__ipairs = mod.Metatables.Locals.Names.__pairs
+mod.Metatables.Locals.Names.__inext = mod.Metatables.Locals.Names.__next
 
 --[[
 	Example Use:
-	for i, name in pairs( ModUtil.Locals.Names( level ) ) do
+	for i, name in pairs( mod.Locals.Names( level ) ) do
 		-- stuff
 	end
 --]]
-function ModUtil.Locals.Names( level )
-	return ModUtil.Proxy( { level = ModUtil.StackLevel( ( level or 1 ) + 1 ) }, ModUtil.Metatables.Locals.Names )
+function mod.Locals.Names( level )
+	return mod.Proxy( { level = mod.StackLevel( ( level or 1 ) + 1 ) }, mod.Metatables.Locals.Names )
 end
 
-ModUtil.Metatables.Locals.Stacked = {
+mod.Metatables.Locals.Stacked = {
 	__index = function( self, name )
 		if excludedLocalNames[ name ] then return end
 		for _, level in pairs( objectData[ self ][ "levels" ] ) do
@@ -1586,18 +1581,18 @@ ModUtil.Metatables.Locals.Stacked = {
 	be used.
 
 	For example, if your function is called from CreateTraitRequirements,
-	you could access its 'local screen' as ModUtil.Locals.Stacked( ).screen
-	and its 'local hasRequirement' as ModUtil.Locals.Stacked( ).hasRequirement.
+	you could access its 'local screen' as mod.Locals.Stacked( ).screen
+	and its 'local hasRequirement' as mod.Locals.Stacked( ).hasRequirement.
 --]]
-function ModUtil.Locals.Stacked( level )
-	return ModUtil.Proxy( { levels = ModUtil.StackLevels( level or 1 ) }, ModUtil.Metatables.Locals.Stacked )
+function mod.Locals.Stacked( level )
+	return mod.Proxy( { levels = mod.StackLevels( level or 1 ) }, mod.Metatables.Locals.Stacked )
 end
 
 -- Entangled Data Structures
 
-ModUtil.Metatables.Entangled = { }
+mod.Metatables.Entangled = { }
 
-ModUtil.Metatables.Entangled.Union = {
+mod.Metatables.Entangled.Union = {
 
 	__index = function( self, key )
 		local value
@@ -1658,7 +1653,7 @@ ModUtil.Metatables.Entangled.Union = {
 
 }
 
-ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( _, ... )
+mod.Entangled.Union = mod.Callable.Set( { }, function( _, ... )
 	local keys, members = { }, toLookup{ ... }
 	local union = { Reserve = { }, Keys = keys, Members = members }
 	for t in pairs( members ) do
@@ -1666,10 +1661,10 @@ ModUtil.Entangled.Union = ModUtil.Callable.Set( { }, function( _, ... )
 			keys[ k ] = true
 		end
 	end
-	return ModUtil.Proxy( union, ModUtil.Metatables.Entangled.Union )
+	return mod.Proxy( union, mod.Metatables.Entangled.Union )
 end )
 
-function ModUtil.Entangled.Union.Add( union, ... )
+function mod.Entangled.Union.Add( union, ... )
 	local members = objectData[ union ][ "Members" ]
 	local keys = objectData[ union ][ "Keys" ]
 	local reserve = objectData[ union ][ "Reserve" ]
@@ -1682,7 +1677,7 @@ function ModUtil.Entangled.Union.Add( union, ... )
 	end
 end
 
-function ModUtil.Entangled.Union.Sub( union, ... )
+function mod.Entangled.Union.Sub( union, ... )
 	local members = objectData[ union ][ "Members" ]
 	local keys = objectData[ union ][ "Keys" ]
 	for t in pairs( toLookup{ ... } ) do
@@ -1695,7 +1690,7 @@ function ModUtil.Entangled.Union.Sub( union, ... )
 	end
 end
 
-ModUtil.Metatables.Entangled.Map = {
+mod.Metatables.Entangled.Map = {
 
 	Data = {
 		__index = function( self, key )
@@ -1858,19 +1853,19 @@ ModUtil.Metatables.Entangled.Map = {
 
 }
 
-ModUtil.Entangled.Map = ModUtil.Callable.Set( { Unique = { } }, function( )
+mod.Entangled.Map = mod.Callable.Set( { Unique = { } }, function( )
 	local data, preImage = { }, { }
 	data, preImage = { Data = data, PreImage = preImage }, { Data = data, PreImage = preImage }
-	data = ModUtil.Proxy( data, ModUtil.Metatables.Entangled.Map.Data )
-	preImage = ModUtil.Proxy( preImage, ModUtil.Metatables.Entangled.Map.PreImage )
+	data = mod.Proxy( data, mod.Metatables.Entangled.Map.Data )
+	preImage = mod.Proxy( preImage, mod.Metatables.Entangled.Map.PreImage )
 	return { Data = data, Index = preImage, PreImage = preImage }
 end )
 
-ModUtil.Entangled.Map.Unique = ModUtil.Callable.Set( { }, function( )
+mod.Entangled.Map.Unique = mod.Callable.Set( { }, function( )
 	local data, inverse = { }, { }
 	data, inverse = { Data = data, Inverse = inverse }, { Data = data, Inverse = inverse }
-	data = ModUtil.Proxy( data, ModUtil.Metatables.Entangled.Map.Unique.Data )
-	inverse = ModUtil.Proxy( inverse, ModUtil.Metatables.Entangled.Map.Unique.Inverse )
+	data = mod.Proxy( data, mod.Metatables.Entangled.Map.Unique.Data )
+	inverse = mod.Proxy( inverse, mod.Metatables.Entangled.Map.Unique.Inverse )
 	return { Data = data, Index = inverse, Inverse = inverse }
 end )
 
@@ -1879,7 +1874,7 @@ end )
 local threadContexts = { }
 setmetatable( threadContexts, { __mode = "kv" } )
 
-ModUtil.Metatables.Context = {
+mod.Metatables.Context = {
 	__call = function( self, arg, callContext, ... )
 
 		local thread = coroutine.running( )
@@ -1918,11 +1913,11 @@ ModUtil.Metatables.Context = {
 	end
 }
 
-ModUtil.Context = ModUtil.Callable.Set( { }, function( _, prepContext, postCall )
-	return ModUtil.Proxy( { prepContext = prepContext, postCall = postCall }, ModUtil.Metatables.Context )
+mod.Context = mod.Callable.Set( { }, function( _, prepContext, postCall )
+	return mod.Proxy( { prepContext = prepContext, postCall = postCall }, mod.Metatables.Context )
 end )
 
-ModUtil.Context.Data = ModUtil.Context( function( info )
+mod.Context.Data = mod.Context( function( info )
 	local tbl = info.arg
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
@@ -1931,8 +1926,8 @@ ModUtil.Context.Data = ModUtil.Context( function( info )
 	info.final = { tbl }
 end )
 
-ModUtil.Context.Meta = ModUtil.Context( function( info )
-	local tbl = ModUtil.Node.Data.Metatable.New( info.arg )
+mod.Context.Meta = mod.Context( function( info )
+	local tbl = mod.Node.Data.Metatable.New( info.arg )
 	info.env = setmetatable( { }, {
 		__index = function( _, key ) return tbl[ key ] or info.penv[ key ] end,
 		__newindex = tbl
@@ -1940,8 +1935,8 @@ ModUtil.Context.Meta = ModUtil.Context( function( info )
 	info.final = { tbl }
 end )
 
-ModUtil.Context.Env = ModUtil.Context( function( info )
-	local func = ModUtil.Overriden( info.arg )
+mod.Context.Env = mod.Context( function( info )
+	local func = mod.Overriden( info.arg )
 	local env = getfenv( func )
 	if env == nil then return end
 	if env == _ENV_REPLACED then
@@ -1957,7 +1952,7 @@ ModUtil.Context.Env = ModUtil.Context( function( info )
 	info.final = { env }
 end )
 
-ModUtil.Context.Call = ModUtil.Context(
+mod.Context.Call = mod.Context(
 	function( info )
 		info.env = setmetatable( { }, { __index = info.penv } )
 		return table.unpack( info.args )
@@ -1972,17 +1967,17 @@ ModUtil.Context.Call = ModUtil.Context(
 	end
 )
 
-ModUtil.Context.Wrap = ModUtil.Callable.Set( { }, function( _, func, context, mod )
-	return ModUtil.Wrap.Bottom( func, function( base, ... ) return ModUtil.Context.Call( base, context, ... ) end, mod )
+mod.Context.Wrap = mod.Callable.Set( { }, function( _, func, context, mod )
+	return mod.Wrap.Bottom( func, function( base, ... ) return mod.Context.Call( base, context, ... ) end, mod )
 end )
 
 
-ModUtil.Context.Wrap.Static = ModUtil.Context(
+mod.Context.Wrap.Static = mod.Context(
 	function( info )
 		info.env = setmetatable( { }, { __index = info.penv } )
 	end,
 	function( info )
-		return ModUtil.Wrap( info.arg, function( base, ... ) 
+		return mod.Wrap( info.arg, function( base, ... ) 
 			local thread = coroutine.running( )
 			local penv = threadEnvironments[ thread ]
 			threadEnvironments[ thread ] = info.env
@@ -1995,10 +1990,10 @@ ModUtil.Context.Wrap.Static = ModUtil.Context(
 
 -- Special Traversal Nodes
 
-ModUtil.Node = ModUtil.Entangled.Map.Unique( )
+mod.Node = mod.Entangled.Map.Unique( )
 
-function ModUtil.Node.New( parent, key )
-	local nodeType = ModUtil.Node.Inverse[ key ]
+function mod.Node.New( parent, key )
+	local nodeType = mod.Node.Inverse[ key ]
 	if nodeType then
 		return key.New( parent )
 	end
@@ -2010,7 +2005,7 @@ function ModUtil.Node.New( parent, key )
 	return tbl
 end
 
-ModUtil.Node.Data.Meta = {
+mod.Node.Data.Meta = {
 	New = function( obj )
 		local meta = getmetatable( obj )
 		if meta == nil then
@@ -2028,25 +2023,25 @@ ModUtil.Node.Data.Meta = {
 	end
 }
 
-ModUtil.Node.Data.Call = {
+mod.Node.Data.Call = {
 	New = function( obj )
-		return ModUtil.Callable.Func.Get( obj ) or error( "node new rejected, new call nodes are not meaningfully mutable.", 2 )
+		return mod.Callable.Func.Get( obj ) or error( "node new rejected, new call nodes are not meaningfully mutable.", 2 )
 	end,
 	Get = function( obj )
-		return ModUtil.Callable.Func.Get( obj )
+		return mod.Callable.Func.Get( obj )
 	end,
 	Set = function( obj, value )
-		ModUtil.Callable.Set( ModUtil.Callable.Get( obj ), value )
+		mod.Callable.Set( mod.Callable.Get( obj ), value )
 		return true
 	end
 }
 
-ModUtil.Node.Data.UpValues = {
+mod.Node.Data.UpValues = {
 	New = function( obj )
-		return ModUtil.UpValues( obj )
+		return mod.UpValues( obj )
 	end,
 	Get = function( obj )
-		return ModUtil.UpValues( obj )
+		return mod.UpValues( obj )
 	end,
 	Set = function( )
 		error( "node set rejected, upvalues node cannot be set.", 2 )
@@ -2055,17 +2050,17 @@ ModUtil.Node.Data.UpValues = {
 
 -- Identifier System
 
-ModUtil.Identifiers = ModUtil.Entangled.Map.Unique( )
-setmetatable( objectData[ ModUtil.Identifiers.Data ][ "Inverse" ], { __mode = "k" } )
-setmetatable( objectData[ ModUtil.Identifiers.Inverse ][ "Data" ], { __mode = "v" } )
+mod.Identifiers = mod.Entangled.Map.Unique( )
+setmetatable( objectData[ mod.Identifiers.Data ][ "Inverse" ], { __mode = "k" } )
+setmetatable( objectData[ mod.Identifiers.Inverse ][ "Data" ], { __mode = "v" } )
 
-ModUtil.Identifiers.Inverse._G = _ENV_ORIGINAL
-ModUtil.Identifiers.Inverse.ModUtil = ModUtil
+mod.Identifiers.Inverse._G = _ENV_ORIGINAL
+mod.Identifiers.Inverse.mod = mod
 
-ModUtil.Mods = ModUtil.Entangled.Map.Unique( )
-setmetatable( objectData[ ModUtil.Mods.Data ][ "Inverse" ], { __mode = "k" } )
-setmetatable( objectData[ ModUtil.Mods.Inverse ][ "Data" ], { __mode = "v" } )
-ModUtil.Mods.Data.ModUtil = ModUtil
+mod.Mods = mod.Entangled.Map.Unique( )
+setmetatable( objectData[ mod.Mods.Data ][ "Inverse" ], { __mode = "k" } )
+setmetatable( objectData[ mod.Mods.Inverse ][ "Data" ], { __mode = "v" } )
+mod.Mods.Data.mod = mod
 
 -- Function Wrapping, Decoration, Overriding, Referral
 
@@ -2074,7 +2069,7 @@ local overrides = setmetatable( { }, { __mode = "k" } )
 
 
 local function cloneDecorNode( node, base )
-	local copy = ModUtil.Table.Copy( decorators[ node ] )
+	local copy = mod.Table.Copy( decorators[ node ] )
 	base = base or copy.Base
 	local clone = copy.Func(base)
 	if decorators[ clone ] then
@@ -2106,7 +2101,7 @@ local function wrapDecorator( wrap )
 	end
 end
 
-ModUtil.Decorate = ModUtil.Callable.Set( { }, function( _, base, func, mod )
+mod.Decorate = mod.Callable.Set( { }, function( _, base, func, mod )
 	local out = func( base )
 	if decorators[ out ] then
 		error( "decorator produced duplicate reference", 2 )
@@ -2115,14 +2110,14 @@ ModUtil.Decorate = ModUtil.Callable.Set( { }, function( _, base, func, mod )
 	return out
 end )
 
-function ModUtil.Decorate.Pop( obj )
+function mod.Decorate.Pop( obj )
 	if not decorators[ obj ] then
 		error( "object has no decorators", 2 )
 	end
 	return decorators[ obj ].Base
 end
 
-function ModUtil.Decorate.Inject( base, func, mod )
+function mod.Decorate.Inject( base, func, mod )
 	local out = func( base )
 	if decorators[ out ] then
 		error( "decorator produced duplicate reference", 2 )
@@ -2140,7 +2135,7 @@ function ModUtil.Decorate.Inject( base, func, mod )
 	return out
 end
 
-function ModUtil.Decorate.Eject( base )
+function mod.Decorate.Eject( base )
 	if not decorators[ base ] then
 		error( "object has no decorators", 2 )
 	end
@@ -2156,22 +2151,22 @@ function ModUtil.Decorate.Eject( base )
 	return decorators[ node ].Base
 end
 
-function ModUtil.Decorate.Refresh( obj )
+function mod.Decorate.Refresh( obj )
 	if decorators[ obj ] then
 		return refreshDecorHistory( obj )
 	end
 	return obj
 end
 
-ModUtil.Wrap = ModUtil.Callable.Set( { }, function( _, base, wrap, mod )
-	return ModUtil.Decorate( base, wrapDecorator( wrap ), mod )
+mod.Wrap = mod.Callable.Set( { }, function( _, base, wrap, mod )
+	return mod.Decorate( base, wrapDecorator( wrap ), mod )
 end )
 
-function ModUtil.Wrap.Bottom( base, wrap, mod )
-	return ModUtil.Decorate.Inject( base, wrapDecorator( wrap ), mod )
+function mod.Wrap.Bottom( base, wrap, mod )
+	return mod.Decorate.Inject( base, wrapDecorator( wrap ), mod )
 end
 
-function ModUtil.Override( base, value, mod )
+function mod.Override( base, value, mod )
 	if overrides[ value ] then
 		error( "cannot override with existing reference", 2 )
 	end
@@ -2194,7 +2189,7 @@ function ModUtil.Override( base, value, mod )
 	return value
 end
 
-function ModUtil.Restore( base )
+function mod.Restore( base )
 	local node, parent, parents = base, nil, { }
 	while decorators[ node ] do
 		parent = node
@@ -2212,25 +2207,25 @@ function ModUtil.Restore( base )
 	return node
 end
 
-function ModUtil.Overriden( obj )
+function mod.Overriden( obj )
 	local node = decorators[ obj ]
 	if not node then return obj end
-	return ModUtil.Overriden( node.Base )
+	return mod.Overriden( node.Base )
 end
 
-function ModUtil.Original( obj )
+function mod.Original( obj )
 	local node = decorators[ obj ] or overrides[ obj ]
 	if not node then return obj end
-	return ModUtil.Original( node.Base )
+	return mod.Original( node.Base )
 end
 
-function ModUtil.ReferFunction( obtain )
+function mod.ReferFunction( obtain )
 	return function( ... )
 		return obtain( )( ... )
 	end
 end
 
-ModUtil.Metatables.ReferTable = {
+mod.Metatables.ReferTable = {
 	__index = function( self, key )
 		return objectData[ self ][ "obtain" ]( )[ key ]
 	end,
@@ -2257,8 +2252,8 @@ ModUtil.Metatables.ReferTable = {
 	end
 }
 
-function ModUtil.ReferTable( obtain, ... )
-	return ModUtil.Proxy( { obtain = obtain }, ModUtil.Metatables.ReferTable )
+function mod.ReferTable( obtain, ... )
+	return mod.Proxy( { obtain = obtain }, mod.Metatables.ReferTable )
 end
 
 -- Management
@@ -2282,7 +2277,7 @@ end
 	modName - the name of the mod
 	parent	- the parent mod, or nil if this mod stands alone
 --]]
-function ModUtil.Mod.Register( first, second, meta )
+function mod.Mod.Register( first, second, meta )
 	local modName, parent
 	if type( first ) == "string" then
 		modName, parent = first, second
@@ -2295,27 +2290,27 @@ function ModUtil.Mod.Register( first, second, meta )
 	end
 	local mod = parent[ modName ] or { }
 	parent[ modName ] = mod
-	local path = ModUtil.Identifiers.Data[ parent ]
+	local path = mod.Identifiers.Data[ parent ]
 	if path ~= nil then
 		path = path .. '.'
 	else
 		path = ''
 	end
 	path = path .. modName
-	ModUtil.Mods.Data[ path ] = mod
-	ModUtil.Identifiers.Inverse[ path ] = mod
+	mod.Mods.Data[ path ] = mod
+	mod.Identifiers.Inverse[ path ] = mod
 	if meta == false then
 		return mod
 	end
-	return setmetatable( mod, ModUtil.Metatables.Mod )
+	return setmetatable( mod, mod.Metatables.Mod )
 end
 
 -- Internal access
 
-ModUtil.Internal = ModUtil.Entangled.Union( )
+mod.Internal = mod.Entangled.Union( )
 
 do
-	local ups = ModUtil.UpValues( function( )
+	local ups = mod.UpValues( function( )
 	return _ENV_ORIGINAL, setSaveIgnore,
 		objectData, newObjectData, isInt, deepLoop, repk, repv, showTableAddrs,
 		decorators, overrides, refreshDecorHistory, cloneDecorHistory, cloneDecorNode,
@@ -2324,149 +2319,687 @@ do
 		stackLevelFunction, stackLevelInterface, stackLevelProperty,
 		passByValueTypes, callableCandidateTypes, excludedFieldNames, escapeCharacters, literalString
 	end )
-	ModUtil.Entangled.Union.Add( ModUtil.Internal, ups )
+	mod.Entangled.Union.Add( mod.Internal, ups )
 end
 
 -- final actions
 
 replaceGlobalEnvironment()
 
-ModUtil.IndexArray.Context = { }
+mod.IndexArray.Context = { }
 
-function ModUtil.IndexArray.Context.Env( baseTable, indexArray, context )
-	return ModUtil.Context.Env( ModUtil.IndexArray.Get( baseTable, indexArray ), context )
+function mod.IndexArray.Context.Env( baseTable, indexArray, context )
+	return mod.Context.Env( mod.IndexArray.Get( baseTable, indexArray ), context )
 end
 
-ModUtil.IndexArray.Wrap = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, wrap, mod )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap, wrap, mod )
+mod.IndexArray.Wrap = mod.Callable.Set( { }, function( _, baseTable, indexArray, wrap, mod )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Wrap, wrap, mod )
 end )
 
-function ModUtil.IndexArray.Wrap.Bottom( baseTable, indexArray, wrap, mod )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Wrap.Bottom, wrap, mod )
+function mod.IndexArray.Wrap.Bottom( baseTable, indexArray, wrap, mod )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Wrap.Bottom, wrap, mod )
 end
 
-ModUtil.IndexArray.Context.Wrap = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, context, mod )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap, context, mod )
+mod.IndexArray.Context.Wrap = mod.Callable.Set( { }, function( _, baseTable, indexArray, context, mod )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Context.Wrap, context, mod )
 end )
 
-function ModUtil.IndexArray.Context.Wrap.Static( baseTable, indexArray, context, mod )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Context.Wrap.Static, context, mod )
+function mod.IndexArray.Context.Wrap.Static( baseTable, indexArray, context, mod )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Context.Wrap.Static, context, mod )
 end
 
-ModUtil.IndexArray.Decorate = ModUtil.Callable.Set( { }, function( _, baseTable, indexArray, func, mod )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate, func, mod )
+mod.IndexArray.Decorate = mod.Callable.Set( { }, function( _, baseTable, indexArray, func, mod )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Decorate, func, mod )
 end )
 
-function ModUtil.IndexArray.Decorate.Pop( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Pop )
+function mod.IndexArray.Decorate.Pop( baseTable, indexArray )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Decorate.Pop )
 end
 
-function ModUtil.IndexArray.Decorate.Inject( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Inject )
+function mod.IndexArray.Decorate.Inject( baseTable, indexArray )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Decorate.Inject )
 end
 
-function ModUtil.IndexArray.Decorate.Eject( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Eject )
+function mod.IndexArray.Decorate.Eject( baseTable, indexArray )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Decorate.Eject )
 end
 
-function ModUtil.IndexArray.Decorate.Refresh( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Decorate.Refresh )
+function mod.IndexArray.Decorate.Refresh( baseTable, indexArray )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Decorate.Refresh )
 end
 
-function ModUtil.IndexArray.Override( baseTable, indexArray, value, mod )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Override, value, mod )
+function mod.IndexArray.Override( baseTable, indexArray, value, mod )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Override, value, mod )
 end
 
-function ModUtil.IndexArray.Restore( baseTable, indexArray )
-	return ModUtil.IndexArray.Map( baseTable, indexArray, ModUtil.Restore )
+function mod.IndexArray.Restore( baseTable, indexArray )
+	return mod.IndexArray.Map( baseTable, indexArray, mod.Restore )
 end
 
-function ModUtil.IndexArray.Overriden( baseTable, indexArray )
-	return ModUtil.Overriden( ModUtil.IndexArray.Get( baseTable, indexArray ) )
+function mod.IndexArray.Overriden( baseTable, indexArray )
+	return mod.Overriden( mod.IndexArray.Get( baseTable, indexArray ) )
 end
 
-function ModUtil.IndexArray.Original( baseTable, indexArray )
-	return ModUtil.Original( ModUtil.IndexArray.Get( baseTable, indexArray ) )
+function mod.IndexArray.Original( baseTable, indexArray )
+	return mod.Original( mod.IndexArray.Get( baseTable, indexArray ) )
 end
 
-function ModUtil.IndexArray.ReferFunction( baseTable, indexArray )
-	return ModUtil.ReferFunction( function( )
-		return ModUtil.IndexArray.Get( baseTable, indexArray )
+function mod.IndexArray.ReferFunction( baseTable, indexArray )
+	return mod.ReferFunction( function( )
+		return mod.IndexArray.Get( baseTable, indexArray )
 	end )
 end
 
-function ModUtil.IndexArray.ReferTable( baseTable, indexArray )
-	return ModUtil.ReferTable( function( )
-		return ModUtil.IndexArray.Get( baseTable, indexArray )
+function mod.IndexArray.ReferTable( baseTable, indexArray )
+	return mod.ReferTable( function( )
+		return mod.IndexArray.Get( baseTable, indexArray )
 	end )
 end
 
 ---
 
-ModUtil.Path.Context = { }
+mod.Path.Context = { }
 
-function ModUtil.Path.Context.Env( path, context )
-	return ModUtil.Context.Env( ModUtil.Path.Get( path ), context )
+function mod.Path.Context.Env( path, context )
+	return mod.Context.Env( mod.Path.Get( path ), context )
 end
 
-ModUtil.Path.Wrap = ModUtil.Callable.Set( { }, function( _, path, wrap, mod )
-	return ModUtil.Path.Map( path, ModUtil.Wrap, wrap, mod )
+mod.Path.Wrap = mod.Callable.Set( { }, function( _, path, wrap, mod )
+	return mod.Path.Map( path, mod.Wrap, wrap, mod )
 end )
 
-function ModUtil.Path.Wrap.Bottom( path, wrap, mod )
-	return ModUtil.Path.Map( path, ModUtil.Wrap.Bottom, wrap, mod )
+function mod.Path.Wrap.Bottom( path, wrap, mod )
+	return mod.Path.Map( path, mod.Wrap.Bottom, wrap, mod )
 end
 
-ModUtil.Path.Context.Wrap = ModUtil.Callable.Set( { }, function( _, path, context, mod )
-	return ModUtil.Path.Map( path, ModUtil.Context.Wrap, context, mod )
+mod.Path.Context.Wrap = mod.Callable.Set( { }, function( _, path, context, mod )
+	return mod.Path.Map( path, mod.Context.Wrap, context, mod )
 end )
 
-function ModUtil.Path.Context.Wrap.Static( path, context, mod )
-	return ModUtil.Path.Map( path, ModUtil.Context.Wrap.Static, context, mod )
+function mod.Path.Context.Wrap.Static( path, context, mod )
+	return mod.Path.Map( path, mod.Context.Wrap.Static, context, mod )
 end
 
-ModUtil.Path.Decorate = ModUtil.Callable.Set( { }, function( _, path, func, mod )
-	return ModUtil.Path.Map( path, ModUtil.Decorate, func, mod )
+mod.Path.Decorate = mod.Callable.Set( { }, function( _, path, func, mod )
+	return mod.Path.Map( path, mod.Decorate, func, mod )
 end )
 
-function ModUtil.Path.Decorate.Pop( path )
-	return ModUtil.Path.Map( path, ModUtil.Decorate.Pop )
+function mod.Path.Decorate.Pop( path )
+	return mod.Path.Map( path, mod.Decorate.Pop )
 end
 
-function ModUtil.Path.Decorate.Refresh( path )
-	return ModUtil.Path.Map( path, ModUtil.Decorate.Refresh )
+function mod.Path.Decorate.Refresh( path )
+	return mod.Path.Map( path, mod.Decorate.Refresh )
 end
 
-function ModUtil.Path.Override( path, value, mod )
-	return ModUtil.Path.Map( path, ModUtil.Override, value, mod )
+function mod.Path.Override( path, value, mod )
+	return mod.Path.Map( path, mod.Override, value, mod )
 end
 
-function ModUtil.Path.Restore( path )
-	return ModUtil.Path.Map( path, ModUtil.Restore )
+function mod.Path.Restore( path )
+	return mod.Path.Map( path, mod.Restore )
 end
 
-function ModUtil.Path.Overriden( path )
-	return ModUtil.Overriden( ModUtil.Path.Get( path ) )
+function mod.Path.Overriden( path )
+	return mod.Overriden( mod.Path.Get( path ) )
 end
 
-function ModUtil.Path.Original( path )
-	return ModUtil.Original( ModUtil.Path.Get( path ) )
+function mod.Path.Original( path )
+	return mod.Original( mod.Path.Get( path ) )
 end
 
-function ModUtil.Path.ReferFunction( path )
-	return ModUtil.ReferFunction( function( )
-		return ModUtil.Path.Get( path )
+function mod.Path.ReferFunction( path )
+	return mod.ReferFunction( function( )
+		return mod.Path.Get( path )
 	end )
 end
 
-function ModUtil.Path.ReferTable( path )
-	return ModUtil.ReferTable( function( )
-		return ModUtil.Path.Get( path )
+function mod.Path.ReferTable( path )
+	return mod.ReferTable( function( )
+		return mod.Path.Get( path )
 	end )
 end
+
+--[[
+    mod Main
+    Components of mod that depend on loading after Main.lua
+]]
+
+-- Global Interception
+
+--[[
+	Intercept global keys which are objects to return themselves
+	This way we can use other namespaces for UI etc
+--]]
+
+local callableCandidateTypes = mod.Internal.callableCandidateTypes
+local setSaveIgnore = mod.Internal.setSaveIgnore
+
+setSaveIgnore( "mod", true )
+
+rawset( _ENV, "GLOBALS", mod.Internal._ENV_ORIGINAL )
+setSaveIgnore( "GLOBALS", true )
+
+local function isPath( path )
+	return path:find("[.]") 
+		and not path:find("[.][.]+")
+		and not path:find("^[.]")
+		and not path:find("[.]$")
+end
+
+local function routeKey( self, key )
+	local t = type( key )
+	if t == "string" and isPath( key ) then
+		return mod.Path.Get( key )
+	end
+	if callableCandidateTypes[ t ] then
+		return key
+	end
+end
+
+local function extendGlobalEnvironment()
+	local meta = getmetatable( _ENV ) or { }
+	local mi = meta.__index
+	local mit = type(mi)
+	if mit == "function" then
+		meta.__index = mod.Wrap( meta.__index, function( base, self, key )
+			local value = base( self, key )
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end, mod )
+	elseif mit == "table" then
+		meta.__index = function( self, key )
+			local value = mi[key]
+			if value ~= nil then return value end
+			return routeKey( self, key )
+		end
+	else
+		meta.__index = routeKey
+	end
+
+	setmetatable( _ENV, meta )
+end
+
+local objectData = mod.Internal.objectData
+local passByValueTypes = mod.Internal.passByValueTypes
+
+local function modDataProxy( value, level )
+	level = ( level or 1 ) + 1
+	local t = type( value )
+	if passByValueTypes[ t ] or t == "string" then
+		return value
+	end
+	if t == "table" then
+		if getmetatable( value ) then
+			error( "saved data tables cannot have values with metatables", level )
+		end
+		return mod.Entangled.ModData( value )
+	end
+	error( "saved data tables cannot have values of type "..t..".", level )
+end
+
+local function modDataKey( key, level )
+	local t = type( key )
+	if passByValueTypes[ t ] or t == "string" then
+		return key
+	end
+	error( "saved data tables cannot have keys of type "..t..".", ( level or 1 ) + 1 )
+end
+
+local function modDataPlain( obj, key, value, level )
+	level = ( level or 1 ) + 1
+	if modDataKey( key, level ) ~= nil then
+		local t = type( value )
+		if passByValueTypes[ t ] or t == "string" then
+			obj[ key ] = value
+		elseif t == "table" then
+			if getmetatable( value ) then
+				local state
+				state, value = pcall( function( ) return objectData[ value ] end )
+				if not state or type( value ) ~= "table" then
+					error( "saved data tables cannot have values with metatables", level )
+				end
+			end
+			for k, v in pairs( value ) do
+				modDataPlain( value, k, v, level )
+			end
+			obj[ key ] = value
+		else
+			error( "saved data tables cannot have values of type "..t..".", level )
+		end
+	end
+end
+
+mod.Metatables.Entangled.ModData = {
+	__index = function( self, key )
+		return modDataProxy( objectData[ self ][ key ], 2 )
+	end,
+	__newindex = function( self, key, value )
+		modDataPlain( objectData[ self ], key, value, 2 )
+	end,
+	__len = function( self )
+		return #objectData[ self ]
+	end,
+	__next = function( self, key )
+		local key = next( objectData[ self ], key )
+		if modDataKey( key, 2 ) ~= nil then
+			return key, modDataProxy( objectData[ self ][ key ], 2 )
+		end
+	end,
+	__inext = function( self, idx )
+		local idx = inext( objectData[ self ], idx )
+		if modDataKey( idx, 2 ) ~= nil then
+			return idx, modDataProxy( objectData[ self ][ idx ], 2 )
+		end
+	end,
+	__pairs = function( self )
+		return qrawpairs( self )
+	end,
+	__ipairs = function( self )
+		return qrawipairs( self )
+	end
+}
+
+function mod.Entangled.ModData( value )
+	return mod.Proxy( value, mod.Metatables.Entangled.ModData )
+end
+
+mod.Mod.Data = setmetatable( { }, {
+	__call = function( _, mod )
+		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
+		local key = mod.Mods.Inverse[ mod ]
+		local data = ModData[ key ]
+		if not data then
+			data = { }
+			ModData[ key ] = data
+		end
+		return modDataProxy( data, 2 )
+	end,
+	__index = function( _, key )
+		ModData = ModData or { }
+		return modDataProxy( ModData[ key ], 2 )
+	end,
+	__newindex = function( _, key, value )
+		ModData = ModData or { }
+		modDataPlain( ModData, key, value, 2 )
+	end,
+	__len = function( )
+		ModData = ModData or { }
+		return #ModData
+	end,
+	__next = function( _, key )
+		ModData = ModData or { }
+		local key = next( ModData, key )
+		if modDataKey( key, 2 ) ~= nil then
+			return key, modDataProxy( ModData[ key ], 2 )
+		end
+	end,
+	__inext = function( _, idx )
+		ModData = ModData or { }
+		local idx = inext( ModData, idx )
+		if modDataKey( idx, 2 ) ~= nil then
+			return idx, modDataProxy( ModData[ idx ], 2 )
+		end
+	end,
+	---@type fun( t ): any, any?, any?
+	__pairs = function( self )
+		return qrawpairs( self )
+	end,
+	__ipairs = function( self )
+		return qrawipairs( self )
+	end	
+} )
+
+local relativeTable = { }
+
+relativeTable[ mod.Mod.Data ] = true
+
+mod.Metatables.Mod = {
+	__index = function( self, key )
+		local val = mod.Mod[ key ]
+		if relativeTable[ val ] then
+			return val( self )
+		elseif type( val ) == "function" then
+			return mod.Wrap( val, function( base, ... )
+				return base( self, ... )
+			end, mod )
+		end
+		return val
+	end
+}
+
+-- Load Trigger Queue
+
+local funcsToLoad = { }
+
+local function loadFuncs( triggerArgs )
+	for _, v in pairs( funcsToLoad ) do
+		v( triggerArgs )
+	end
+	funcsToLoad = { }
+end
+---@diagnostic disable-next-line: undefined-global
+if OnAnyLoad then
+	---@diagnostic disable-next-line: undefined-global
+	OnAnyLoad{ function( triggerArgs ) loadFuncs( triggerArgs ) end }
+end
+
+--[[
+	Run the provided function once on the next in-game load.
+
+	triggerFunction - the function to run
+--]]
+function mod.LoadOnce( triggerFunction )
+	table.insert( funcsToLoad, triggerFunction )
+end
+
+--[[
+	Cancel running the provided function once on the next in-game load.
+
+	triggerFunction - the function to cancel running
+--]]
+function mod.CancelLoadOnce( triggerFunction )
+	for i, v in ipairs( funcsToLoad ) do
+		if v == triggerFunction then
+			table.remove( funcsToLoad, i )
+		end
+	end
+end
+
+-- Internal Access
+
+do
+	local ups = mod.UpValues( function( )
+		return _ENV, funcsToLoad, loadFuncs, isPath, routeKey, callableCandidateTypes, setSaveIgnore,
+			objectData, passByValueTypes, modDataKey, modDataProxy, modDataPlain, relativeTable, extendGlobalEnvironment
+	end )
+	mod.Entangled.Union.Add( mod.Internal, ups )
+end
+
+extendGlobalEnvironment()
+
+-- Debug Printing
+
+local printDisplay = nil
+
+function mod.Hades.PrintDisplay( text , delay, color )
+	if type(text) ~= "string" then
+		text = tostring(text)
+	end
+	text = " "..text.." "
+	if color == nil then
+		color = Color.Yellow
+	end
+	if delay == nil then
+		delay = 5
+	end
+	if printDisplay then
+		Destroy({Ids = {printDisplay.Id}})
+	end
+	printDisplay = CreateScreenComponent({Name = "BlankObstacle", Group = "PrintDisplay", X = ScreenCenterX, Y = 40 })
+	CreateTextBox({ Id = printDisplay.Id, Text = text, FontSize = 22, Color = color, Font = "UbuntuMonoBold"})
+	
+	if delay > 0 then
+		thread(function()
+			wait(delay)
+			Destroy({Ids = {printDisplay.Id}})
+			printDisplay = nil
+		end)
+	end
+end
+
+local printOverhead = { }
+
+function mod.Hades.PrintOverhead(text, delay, color, dest)
+	if type(text) ~= "string" then
+		text = tostring(text)
+	end
+	text = " "..text.." "
+	if dest == nil then
+		dest = CurrentRun.Hero.ObjectId
+	end
+	if color == nil then
+		color = Color.Yellow
+	end
+	if delay == nil then
+		delay = 5
+	end
+	Destroy({Ids = {printOverhead[dest]}})
+	local id = SpawnObstacle({ Name = "BlankObstacle", Group = "PrintOverhead", DestinationId = dest })
+	printOverhead[dest] = id
+	Attach({ Id = id, DestinationId = dest })
+	CreateTextBox({ Id = id, Text = text, FontSize = 32, OffsetX = 0, OffsetY = -150, Color = color, Font = "AlegreyaSansSCBold", Justification = "Center" })
+	if delay > 0 then
+		thread(function()
+			wait(delay)
+			if printOverhead[dest] then
+				Destroy({Ids = {id}})
+				printOverhead[dest] = nil
+			end
+		end)
+	end
+end
+
+local printStack = nil
+
+local function closePrintStack()
+	if printStack then
+		printStack.CullEnabled = false
+		PlaySound({ Name = "/SFX/Menu Sounds/GeneralWhooshMENU" })
+		printStack.KeepOpen = false
+		
+		CloseScreen(GetAllIds(printStack.Components),0)
+		closeFuncs["PrintStack"] = nil
+		printStack = nil
+	end
+end
+
+local function orderPrintStack(screen,components)
+	local v
+	if screen.CullPrintStack then
+		v = screen.TextStack[1]
+		if v.obj then
+			Destroy({Ids = {v.obj.Id}})
+			components["TextStack_" .. v.tid] = nil
+			v.obj = nil
+			screen.TextStack[v.tid]=nil
+		end
+		thread( function()
+			local v = screen.TextStack[2]
+			if v then
+				wait(v.data.Delay)
+				if v.obj then
+					screen.CullPrintStack = true
+				end
+			end
+		end)
+	else
+		thread( function()
+			local v = screen.TextStack[1]
+			if v then 
+				wait(v.data.Delay)
+				if v.obj then
+					screen.CullPrintStack = true
+				end
+			end
+		end)
+	end
+	screen.CullPrintStack = false
+	
+	for k,v in pairs(screen.TextStack) do
+		components["TextStack_" .. k] = nil
+		Destroy({Ids = {v.obj.Id}})
+	end
+	
+	screen.TextStack = CollapseTable(screen.TextStack)
+	for i,v in pairs(screen.TextStack) do
+		v.tid = i
+	end
+	if #screen.TextStack == 0 then
+		return closePrintStack()
+	end
+	
+	local Ymul = screen.StackHeight+1
+	local Ygap = 30
+	local Yoff = 26*screen.StackHeight+22
+	local n =#screen.TextStack
+	
+	if n then
+		for k=1,math.min(n,Ymul) do
+			v = screen.TextStack[k]
+			if v then
+				local data = v.data
+				screen.TextStack[k].obj = CreateScreenComponent({ Name = "rectangle01", Group = "PrintStack", X = -1000, Y = -1000})
+				local textStack = screen.TextStack[k].obj
+				components["TextStack_" .. k] = textStack
+				SetScaleX({Id = textStack.Id, Fraction = 10/6})
+				SetScaleY({Id = textStack.Id, Fraction = 0.1})
+				SetColor({ Id = textStack.Id, Color = data.Bgcol })
+				CreateTextBox({ Id = textStack.Id, Text = data.Text, FontSize = data.FontSize, OffsetX = 0, OffsetY = 0, Color = data.Color, Font = data.Font, Justification = "Center" })
+				Attach({ Id = textStack.Id, DestinationId = components.Background.Id, OffsetX = 220, OffsetY = -Yoff })
+				Yoff = Yoff - Ygap
+			end
+		end
+	end
+	
+end
+
+function mod.Hades.PrintStack( text, delay, color, bgcol, fontsize, font, sound )		
+	if color == nil then color = {1,1,1,1} end
+	if bgcol == nil then bgcol = {0.590, 0.555, 0.657,0.125} end
+	if fontsize == nil then fontsize = 13 end
+	if font == nil then font = "UbuntuMonoBold" end
+	if sound == nil then sound = "/Leftovers/SFX/AuraOff" end
+	if delay == nil then delay = 3 end
+	
+	if type(text) ~= "string" then 
+		text = tostring(text)
+	end
+	text = " "..text.." "
+	
+	local first = false
+	if not printStack then
+		first = true
+		printStack = { Components = {} }
+		closeFuncs["PrintStack"] = closePrintStack
+	end
+	local screen = printStack
+	local components = screen.Components
+	
+	if first then 
+	
+		screen.KeepOpen = true
+		screen.TextStack = {}
+		screen.CullPrintStack = false
+		screen.MaxStacks = mod.Hades.PrintStackCapacity
+		screen.StackHeight = mod.Hades.PrintStackHeight
+		PlaySound({ Name = "/SFX/Menu Sounds/DialoguePanelOutMenu" })
+		components.Background = CreateScreenComponent({ Name = "BlankObstacle", Group = "PrintStack", X = ScreenCenterX, Y = 2*ScreenCenterY})
+		components.Backing = CreateScreenComponent({ Name = "TraitTray_Center", Group = "PrintStack"})
+		Attach({ Id = components.Backing.Id, DestinationId = components.Background.Id, OffsetX = -180, OffsetY = 0 })
+		SetColor({ Id = components.Backing.Id, Color = {0.590, 0.555, 0.657, 0.8} })
+		SetScaleX({Id = components.Backing.Id, Fraction = 6.25})
+		SetScaleY({Id = components.Backing.Id, Fraction = 6/55*(2+screen.StackHeight)})
+		
+		thread( function()
+			while screen do
+				wait(0.5)
+				if screen.CullEnabled then
+					if screen.CullPrintStack then
+						orderPrintStack(screen,components)
+					end
+				end
+			end
+		end)
+		
+	end
+
+	if #screen.TextStack >= screen.MaxStacks then return end
+	
+	screen.CullEnabled = false
+	
+	local newText = {}
+	newText.obj = CreateScreenComponent({ Name = "rectangle01", Group = "PrintStack"})
+	newText.data = {Delay = delay, Text = text, Color = color, Bgcol = bgcol, Font = font, FontSize = fontsize}
+	SetColor({ Id = newText.obj.Id, Color = {0,0,0,0}})
+	table.insert(screen.TextStack, newText)
+	
+	PlaySound({ Name = sound })
+	
+	orderPrintStack(screen,components)
+	
+	screen.CullEnabled = true
+	
+end
+
+function mod.Hades.PrintStackChunks( text, linespan, ... )
+	if not linespan then linespan = 90 end
+	for _,s in ipairs( mod.String.Chunk( text, linespan, mod.Hades.PrintStackCapacity ) ) do
+		mod.Hades.PrintStack( s, ... )
+	end
+end
+
+-- Trigger Proxy
+
+local triggers = { }
+
+local function isTrigger( name )
+	if name:sub( 1, 2 ) ~= "On" then return false end
+	local func = _G[ name ]
+	return type( func ) == "function" and debug.getinfo( func, "S" ).what == "C"
+end
+
+local proxyTriggerMeta = {
+	__index = function( s, k )
+		if type( k ) == "string" then
+			local w, n = pcall( tonumber, k )
+			if w then k = n end
+		end
+		return rawget( s, k )
+	end,
+	__newindex = function( s, k, v )
+		if type( k ) == "string" then
+			local w, n = pcall( tonumber, k )
+			if w then k = n end
+		end
+		rawset( s, k, v )
+	end
+}
+
+local function proxyTriggerCallback( indexArray, func, args )
+	local t = mod.IndexArray.Get( triggers, indexArray ) or setmetatable( { }, proxyTriggerMeta )
+	local n = #t + 1
+	local f = mod.Override( func, function( ... )
+		return t[ n ].Call( ... )
+	end )
+	table.insert( t, { Args = args, Call = func } )
+	mod.IndexArray.Set( triggers, indexArray, t )
+	return f
+end
+
+local function proxyTrigger( name )
+	mod.IndexArray.Wrap( _G, { name }, function( base, args, ... )
+		local cargs = mod.Table.Copy( args )
+		local func = table.remove( cargs )
+		local file = debug.getinfo( 2, "S" ).source
+		args[ #args ] = proxyTriggerCallback( { name, file }, func, cargs )
+		return base( args, ... )
+	end )
+end
+
+setmetatable( triggers, {
+	__newindex = function( s, k, v )
+		if v == true then
+			proxyTrigger( k )
+			v = s[ k ] or { }
+		end
+		rawset( s, k, v )
+	end
+} )
+mod.Hades.Triggers = triggers
+mod.Identifiers.Inverse[ triggers ] = "mod.Hades.Triggers"
 
 --]==]
 
-ModUtil.Internal = {}
-
-return ModUtil
+return mod

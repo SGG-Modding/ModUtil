@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a callback to wait for the end of all game scripts (easier to remember than explicitly queueing onto `RoomLogic.lua`)
+
+### Changed
+
+- Changed the structure of the definitions files, now `modutil.mod` has some hints (still a work in progress).
+
+### Fixed
+
+- Fixed `ModUtil.Hades.PrintStack`, as it would read the config incorrectly and try to use a since deleted internal table.
+
 ## [3.0.0] - 2024-05-15
 
 ### Added
