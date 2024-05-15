@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added interface as a ReturnOfModding plugin, with helpers to manage loading (e.g. on_ready_early)
+
 ### Changed
 
 - Moved ModUtil.Mod.Register and ModData to ModUtil.lua so it will be available earlier in the load order
