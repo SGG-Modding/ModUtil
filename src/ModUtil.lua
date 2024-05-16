@@ -2464,7 +2464,7 @@ local pendingSaveIgnores = {}
 
 local function setSaveIgnore(key, ignore)
 	---@diagnostic disable-next-line: undefined-global
-	if not SaveIgnores and not GlobalSaveWhitelist then
+	if SaveIgnores == nil and GlobalSaveWhitelist == nil then
 		pendingSaveIgnores[key] = ignore
 	else
 		for k,v in pairs(pendingSaveIgnores) do
@@ -2472,13 +2472,39 @@ local function setSaveIgnore(key, ignore)
 		end
 	end
 	---@diagnostic disable-next-line: undefined-global
-	if SaveIgnores then
+	if SaveIgnores ~= nil then
 		---@diagnostic disable-next-line: undefined-global
 		SaveIgnores[key] = ignore
+	end
 	---@diagnostic disable-next-line: undefined-global
-	elseif GlobalSaveWhitelist then
-		---@diagnostic disable-next-line: undefined-global
-		GlobalSaveWhitelist[key] = not ignore
+	if GlobalSaveWhitelist ~= nil then 
+		if ignore == false then
+			local found = false
+			---@diagnostic disable-next-line: undefined-global
+			for _,k in ipairs(GlobalSaveWhitelist) do
+				if k == key then
+					found = true
+					break
+				end
+			end
+			if not found then
+				---@diagnostic disable-next-line: undefined-global
+				table.insert(GlobalSaveWhitelist,key)
+			end
+		elseif ignore == true then
+			local found = 0
+			---@diagnostic disable-next-line: undefined-global
+			for i,k in ipairs(GlobalSaveWhitelist) do
+				if k == key then
+					found = i
+					break
+				end
+			end
+			if found > 0 then
+				---@diagnostic disable-next-line: undefined-global
+				table.remove(GlobalSaveWhitelist,found)
+			end
+		end
 	end
 end
 
@@ -2496,13 +2522,16 @@ function ModUtil.Mod.Register( first, second, meta )
 	else
 		modName, parent = second, first
 	end
+	local path
 	if not parent then
 		parent = _G
 		setSaveIgnore( modName, true )
+	else
+		path = ModUtil.Identifiers.Data[ parent ]
 	end
 	local mod = parent[ modName ] or { }
 	parent[ modName ] = mod
-	local path = ModUtil.Identifiers.Data[ parent ]
+
 	if path ~= nil then
 		path = path .. '.'
 	else

@@ -159,18 +159,22 @@ ModUtil.Mod.Data = setmetatable( { }, {
 	end,
 	__index = function( _, key )
 		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
 		return modDataProxy( ModData[ key ], 2 )
 	end,
 	__newindex = function( _, key, value )
 		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
 		modDataPlain( ModData, key, value, 2 )
 	end,
 	__len = function( )
 		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
 		return #ModData
 	end,
 	__next = function( _, key )
 		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
 		local key = next( ModData, key )
 		if modDataKey( key, 2 ) ~= nil then
 			return key, modDataProxy( ModData[ key ], 2 )
@@ -178,6 +182,7 @@ ModUtil.Mod.Data = setmetatable( { }, {
 	end,
 	__inext = function( _, idx )
 		ModData = ModData or { }
+		setSaveIgnore( "ModData", false )
 		local idx = inext( ModData, idx )
 		if modDataKey( idx, 2 ) ~= nil then
 			return idx, modDataProxy( ModData[ idx ], 2 )
