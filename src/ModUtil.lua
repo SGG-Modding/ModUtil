@@ -237,12 +237,10 @@ do
 		j = j or tbl.n or #tbl
 		if i > j then return "" end
 		sep = sep or ""
-		local t = rawnext( wt ) or { }
-		rawset( wt, 1, t )
 		for k = i, j, 1 do
-			rawset( t, k, tostring( tbl[ k ] ) )
+			rawset( wt, k, tostring( tbl[ k ] ) )
 		end
-		return rawconcat( t, sep, i, j )
+		return rawconcat( wt, sep, i, j )
 	end
 end
 
