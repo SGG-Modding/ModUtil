@@ -163,6 +163,12 @@ function setfenv( fn, env )
 	until not name
 end
 
+local rawtable = table
+table = { }
+for k,v in pairs( rawtable ) do
+	table[k] = v
+end
+
 table.rawinsert = table.insert
 local rawinsert = table.rawinsert
 -- table.insert that respects metamethods
