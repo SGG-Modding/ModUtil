@@ -168,6 +168,7 @@ table = { }
 for k,v in pairs( rawtable ) do
 	table[k] = v
 end
+_ENV.table = table
 
 table.rawinsert = table.insert
 local rawinsert = table.rawinsert
