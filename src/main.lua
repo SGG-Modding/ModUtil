@@ -10,62 +10,54 @@ local envy = rom.mods['SGG_Modding-ENVY']
 ---@module 'SGG_Modding-ENVY-auto'
 envy.auto(); _ENV = private
 
+local function deprecate(name, update, orig)
+	orig = orig or public[name]
+	public[name] = function(...)
+		local env = getfenv(2)
+		if env._PLUGIN then
+			rom.log.warning(env._PLUGIN.guid .. ' is using ' .. name .. ', which will eventually be removed in future versions.')
+			if update then rom.log.warning('To fix this the author should ' .. update) end
+		end
+		return orig(...)
+	end
+end
+
 public.private = private
 
-local ready_early = false
-local ready_late = false
-local ready_final = false
-local waiting_ready_early = {}
-local waiting_ready_late = {}
-local waiting_ready_final = {}
+local has_loaded = {}
+local awaiting_load = {}
+private.trigger_loaded = {}
+public.once_loaded = {}
+
+local function define_once_loaded(name)
+	has_loaded[name] = false
+	awaiting_load[name] = {}
+	trigger_loaded[name] = function()
+		has_loaded[name] = true
+		for _,callback in ipairs(awaiting_load[name]) do
+			callback()
+		end
+		for k in pairs(awaiting_load[name]) do
+			awaiting_load[name][k] = nil
+		end
+	end
+	once_loaded[name] = function(callback)
+		if has_loaded[name] then return callback() end
+		table.insert(awaiting_load[name],callback)
+	end 
+end
+
+define_once_loaded('mod')
+define_once_loaded('game')
+define_once_loaded('save')
 
 rom.on_import.post(function(name)
 	if name == 'RoomLogic.lua' or name == 'RoomManager.lua' then
-		private.trigger_ready_final()
+		trigger_loaded.game()
+		mod.LoadOnce(trigger_loaded.save)
 	end
 end)
 
-function private.trigger_ready_early()
-	ready_early = true
-	for i,v in ipairs(waiting_ready_early) do
-		v()
-	end
-	for k in pairs(waiting_ready_early) do
-		waiting_ready_early[k] = nil
-	end
-end
-
-function private.trigger_ready_late()
-	ready_late = true
-	for i,v in ipairs(waiting_ready_late) do
-		v()
-	end
-	for k in pairs(waiting_ready_late) do
-		waiting_ready_late[k] = nil
-	end
-end
-
-function private.trigger_ready_final()
-	ready_final = true
-	for i,v in ipairs(waiting_ready_final) do
-		v()
-	end
-	for k in pairs(waiting_ready_final) do
-		waiting_ready_final[k] = nil
-	end
-end
-
-function public.on_ready_early(callback)
-	if ready_early then callback() end
-	table.insert(waiting_ready_early,callback)
-end
-
-function public.on_ready_late(callback)
-	if ready_late then callback() end
-	table.insert(waiting_ready_late,callback)
-end
-
-function public.on_ready_final(callback)
-	if ready_final then callback() end
-	table.insert(waiting_ready_final,callback)
-end
+deprecate('on_ready_early', 'use once_loaded.mod instead.', once_loaded.mod)
+deprecate('on_ready_late', 'use once_loaded.mod instead.', once_loaded.mod)
+deprecate('on_ready_final', 'use once_loaded.game instead.', once_loaded.game)

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `once_loaded` with fields `mod`, `game`, and `save` (replaces the `on_ready_*` fields)
+
+### Changed
+- `ModUtil.Mod.Data` will now produce an error when accessed before the game has loaded a save.
+
+### Fixed
+- Fixed `table` in the game globals so it is now properly extended (was broken by `3.1.2`).
+- As a result of changes in `SGG_Modding-ENVY` and this plugin, `ModUtil.Mod.Data` now properly affects `ModData`.
+
+### Deprecated
+- `on_ready_early` now behaves like `on_ready_late`.
+- `on_ready_early`, `on_ready_late`, `on_ready_final` have all been renamed.
+
 ## [3.1.2] - 2024-05-29
 
 ### Fixed

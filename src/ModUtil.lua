@@ -2459,7 +2459,7 @@ ModUtil.Metatables.ReferTable = {
 	end
 }
 
-function ModUtil.ReferTable( obtain, ... )
+function ModUtil.ReferTable( obtain )
 	return ModUtil.Proxy( { obtain = obtain }, ModUtil.Metatables.ReferTable )
 end
 
