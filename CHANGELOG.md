@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] - 2025-06-17
+
 ### Fixed
 
 - Fixed `mod.Mod.Register` and `mod.Mod.Data` usage for Hades 2 update.
@@ -80,7 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial Thunderstore release.
 
-[unreleased]: https://github.com/SGG-Modding/ModUtil/compare/4.0.0...HEAD
+[unreleased]: https://github.com/SGG-Modding/ModUtil/compare/4.0.1...HEAD
+[4.0.1]: https://github.com/SGG-Modding/ModUtil/compare/4.0.0...4.0.1
 [4.0.0]: https://github.com/SGG-Modding/ModUtil/compare/3.1.2...4.0.0
 [3.1.2]: https://github.com/SGG-Modding/ModUtil/compare/3.1.1...3.1.2
 [3.1.1]: https://github.com/SGG-Modding/ModUtil/compare/3.1.0...3.1.1
