@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed `mod.Mod.Register` and `mod.Mod.Data` usage for Hades 2 update.
+
 ## [4.0.0] - 2024-06-03
 
 ### Added
 
-- Added `once_loaded` with fields `mod`, `game`, and `save` (replaces the `on_ready_*` fields)
+- Added `once_loaded` with fields `mod`, `game`, and `save` (replaces the `on_ready_*` fields).
 
 ### Changed
 
