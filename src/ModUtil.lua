@@ -2468,19 +2468,27 @@ end
 local pendingSaveIgnores = {}
 
 local function setSaveIgnore(key, ignore)
+
+	-- if this is called too early queue it up to be performed later
+	-- may need to be revised to guarantee the queue gets resolved
 	---@diagnostic disable-next-line: undefined-global
 	if SaveIgnores == nil and GlobalSaveWhitelist == nil then
 		pendingSaveIgnores[key] = ignore
 	else
 		for k,v in pairs(pendingSaveIgnores) do
+			pendingSaveIgnores[k] = nil
 			setSaveIgnore(k,v)
 		end
 	end
+	
+	-- Hades 1: saved tables are blacklisted as a lookup
 	---@diagnostic disable-next-line: undefined-global
 	if SaveIgnores ~= nil then
 		---@diagnostic disable-next-line: undefined-global
 		SaveIgnores[key] = ignore
 	end
+	
+	-- Hades 2: saved tables are whitelisted as a list
 	---@diagnostic disable-next-line: undefined-global
 	if GlobalSaveWhitelist ~= nil then 
 		if ignore == false then
@@ -2511,6 +2519,7 @@ local function setSaveIgnore(key, ignore)
 			end
 		end
 	end
+	
 end
 
 --[[
