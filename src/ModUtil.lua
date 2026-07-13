@@ -177,7 +177,7 @@ local rawinsert = table.rawinsert
 ---@diagnostic disable-next-line: duplicate-set-field
 function table.insert( list, pos, value )
 	if type(list) ~= "table" then
-		error( "bad argument #1 to '" .. getname( ) .. "' (expected type 'table', received type '" .. type(list) .."')", 2 )
+		error( "bad argument #1 to '" .. getname( ) .. "' (table expected, got " .. type(list) ..")", 2 )
 	end
 	local last = #list
 	if value == nil then
@@ -203,7 +203,7 @@ table.rawremove = table.remove
 ---@diagnostic disable-next-line: duplicate-set-field
 function table.remove( list, pos )
 	if type(list) ~= "table" then
-		error( "bad argument #1 to '" .. getname( ) .. "' (expected type 'table', received type '" .. type(list) .."')", 2 )
+		error( "bad argument #1 to '" .. getname( ) .. "' (table expected, got " .. type(list) ..")", 2 )
 	end
 	local last = #list
 	if pos == nil then
