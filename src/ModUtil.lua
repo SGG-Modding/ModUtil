@@ -626,7 +626,7 @@ local function deepLoop( o, limit, dlimit, indent, seen, cond, depth )
 	if indent then
 		local __indent = { }
 		for i = 1, depth, 1 do
-			_indent[ i ] = indent
+			__indent[ i ] = indent
 		end
 		_indent = table.rawconcat( __indent )
 	end
